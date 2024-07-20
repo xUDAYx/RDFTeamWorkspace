@@ -1,0 +1,9 @@
+{
+    "rules": [
+      {
+        "description": "No JSON file should be called in BW files",
+        "pattern": ".*Data\\.json$"
+      }
+    ]
+  }
+  

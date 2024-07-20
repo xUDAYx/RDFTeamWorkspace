@@ -42,16 +42,21 @@ class RuleEngine:
 
                 current_widget = self.tab_widget.currentWidget()
                 editor = current_widget.findChild(QsciScintilla)
-                content = editor.text() if editor else ""
-                errors = self.apply_rules(content, rules)
-                terminal = current_widget.findChild(TerminalWidget)
-                if errors:
-                    for error in errors:
-                        terminal.write(f"Error: {error}\n", color="red")
-                        self.mobile_view.set_border_color("red")
+                if editor:
+                    editor.setObjectName("codeEditor")
+                    content = editor.text()
+                    errors = self.apply_rules(content, rules)
+                    terminal = current_widget.findChild(TerminalWidget)
+                    if errors:
+                        for error in errors:
+                            terminal.write(f"Error: {error}\n", color="red")
+                        editor.setStyleSheet("#codeEditor { border: 1px solid red; }")
+                    else:
+                        terminal.write("No errors found.\n", color="white")
+                        editor.setStyleSheet("#codeEditor { border: none; }")
                 else:
-                    terminal.write("No errors found.\n", color="white")
-                    self.mobile_view.set_border_color(None)
+                    terminal.write("Editor not found.\n", color="yellow")
+
             else:
                 terminal.write("No rule file found for this file.\n")
         except Exception as e:

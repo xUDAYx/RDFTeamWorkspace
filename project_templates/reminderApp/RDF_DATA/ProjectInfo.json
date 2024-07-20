@@ -1,0 +1,5 @@
+{
+    "init": "reminderAppUI.php",
+    "Project Title": "Reminder App",
+    "Project Description ": "The Reminder App allows users to set reminders with a specific date, time, and note, and displays them in a detailed table. It includes a modal alert with an optional audio notification to alert users when a reminder is due."
+}

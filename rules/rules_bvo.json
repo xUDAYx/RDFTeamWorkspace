@@ -1,0 +1,13 @@
+{
+    "rules": [
+      {
+        "description": "Ensure that a .json file must be present among BVO files",
+        "pattern": "(?=.*\\b\\w*Data\/.json\\b)"
+      },
+      {
+        "description": "BVO files should not call any kind of .PHP file",
+        "pattern": "\\bBVO.*\\.php\\b"
+      }
+    ]
+  }
+  

@@ -1,0 +1,30 @@
+[
+    {
+        "id": "user_6675682c5f7b37.90571360",
+        "fullName": "Dipti ",
+        "email": "user04@gmail.com",
+        "mobile": "2345543423",
+        "password": "User123@+"
+    },
+    {
+        "id": "user_66756d07c5f173.93751298",
+        "fullName": "My Name",
+        "email": "username123@gmail.com",
+        "mobile": "1276543423",
+        "password": "Hello123@+"
+    },
+    {
+        "id": "user_66792d5d0f93f2.98869290",
+        "fullName": "Vaishnavi Yuvraj kaware ",
+        "email": "kawarev@gmail.com",
+        "mobile": "1234567890",
+        "password": "Pass@123"
+    },
+    {
+        "id": "user_667ba264dc2e78.83572650",
+        "fullName": "Likitha",
+        "email": "Likitha@gmail.com",
+        "mobile": "4562789458",
+        "password": "Liki@123"
+    }
+]

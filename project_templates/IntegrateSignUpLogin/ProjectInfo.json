@@ -1,0 +1,6 @@
+{
+    "init": "homePageUI.php",
+    "Project Title": "Integrate Sign-up, Login, Forgot Password and Maintain Session",
+    "Project Description": "This project involves creating a user authentication system that integrates sign-up, login, and forgot password functionalities while maintaining user sessions securely. It ensures a seamless user experience by managing user credentials and session data efficientl."
+  }
+  

@@ -1,0 +1,13 @@
+{
+    "rules": [
+      {
+        "description": "No BVO.php should be linked in the action.js file",
+        "pattern": "(?=.*\\b\\w*BVO\\.php\\b)"
+      },
+      {
+        "description": "No JSON files should be linked in the action.js file",
+        "pattern": "(?=.*\\b\\w*Data\\.json\\b)"
+      }
+    ]
+  }
+  

@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout,QScrollArea, QTableWidget, QPushButton, QFileDialog, QTableWidgetItem, QHeaderView, QLineEdit, QHBoxLayout,QLabel,QMessageBox,QMenu,QInputDialog, QDialog
 from PyQt6.QtCore import Qt, QDir, pyqtSignal, QSettings
 from PyQt6.QtGui import QMouseEvent,QAction
+
 from PyQt6.QtGui import QColor, QFont
 from PyQt6.Qsci import QsciScintilla, QsciLexerPython, QsciLexerHTML, QsciLexerJavaScript, QsciLexerCSS
 
@@ -34,8 +35,6 @@ def read_file(file_path):
     except Exception as e:
         print(f"Error reading file {file_path}: {e}")
         return ""
-
-
 
 def read_project_info(folder_path):
     ui_file_map = {}
@@ -261,7 +260,7 @@ def process_additional_ui_file(folder_path, ui_file_name):
                                 except Exception as e:
                                     print(f"Error finding Data.json files in BVO.php file: {e}")
 
-    return list(linked_files), found_ui_files
+    return list(linked_files), found_ui_files   
 
 
 def show_alert(message):
@@ -277,6 +276,7 @@ def get_all_file_names(directory):
         for file in files:
             file_names.append(file)
     return file_names
+
 
 class ProjectView(QWidget):
     file_double_clicked = pyqtSignal(str)
@@ -363,6 +363,7 @@ class ProjectView(QWidget):
             rename_action.triggered.connect(self.rename_file)
             self.context_menu.addAction(rename_action)
 
+            
 
             self.context_menu.exec(table.mapToGlobal(pos))
         elif item:
@@ -370,9 +371,9 @@ class ProjectView(QWidget):
             self.context_menu.exec(table.mapToGlobal(pos))
 
     def create_new_file(self):
-        if not self.folder_path:
-            QMessageBox.warning(self, "Project Not Opened", "Open a project first to create a new file.")
-            return
+        if not hasattr(self, 'folder_path') or not self.folder_path:
+                QMessageBox.warning(self, "Project Not Opened", "Open a project first to create a new file.")
+                return
 
         # Define the list of folders
         folders = ['RDF_UI', 'RDF_ACTION', 'RDF_BW', 'RDF_BVO', 'RDF_DATA']
@@ -476,9 +477,10 @@ class ProjectView(QWidget):
             
     def merge_project(self):
     # Prompt the user to select another project folder to merge
-        merge_folder_path = QFileDialog.getExistingDirectory(self, "Select Project to Merge", QDir.homePath())
-        if merge_folder_path:
-            current_project_path = self.path_line_edit.text()
+        try:
+            merge_folder_path = QFileDialog.getExistingDirectory(self, "Select Project to Merge", QDir.homePath())
+            if merge_folder_path:
+                current_project_path = self.path_line_edit.text()
             if current_project_path:
                 success = self.merge_project_data(current_project_path, merge_folder_path)
                 if success:
@@ -486,14 +488,16 @@ class ProjectView(QWidget):
                 else:
                     QMessageBox.critical(self, "Merge Failed", "Failed to merge project.")
                     self.populate_tables(current_project_path)
+        except Exception as e:
+            print(f"{e}")
 
     def merge_project_data(self, current_project_path, merge_folder_path):
         try:
             current_linked_files = read_project_info(current_project_path)
             merge_linked_files = read_project_info(merge_folder_path)
 
-            # Combine linked files
-            combined_linked_files = list(set(current_linked_files + merge_linked_files))
+            # Combine dictionaries
+            combined_linked_files = {**current_linked_files, **merge_linked_files}
 
             # Copy files from the merge project to the current project
             folders = ["RDF_UI", "RDF_ACTION", "RDF_BW", "RDF_BVO", "RDF_DATA"]
@@ -739,15 +743,12 @@ class ProjectView(QWidget):
         try:
             if not project_path:
                 raise ValueError("Project path is not set. Please ensure the path is valid.")
-
-            allowed_folders = {"RDF_UI", "RDF_ACTION", "RDF_BW", "RDF_BVO", "RDF_DATA"}
+            
             files_to_validate = []
-
             for root, dirs, files in os.walk(project_path):
-                if any(folder in root for folder in allowed_folders):
-                    for file in files:
-                        file_path = os.path.join(root, file)
-                        files_to_validate.append(file_path)
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    files_to_validate.append(file_path)
             return files_to_validate
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Failed to collect files to validate: {e}")
@@ -839,7 +840,6 @@ class ProjectView(QWidget):
                     print(f"File with errors: {os.path.basename(file_path)}")
             self.highlight_files_with_errors()
             return self.files_with_errors
-
         except Exception as e:
             print(f"Error validating files: {e}")
 
@@ -850,36 +850,13 @@ class ProjectView(QWidget):
             
             layout = QVBoxLayout()
             if files_with_errors:
-                label = QLabel(f"{len(files_with_errors)} files have validation errors:")
+                label = QLabel(f"{len(files_with_errors)} files have validation errors. Please go to red-colored files in the project view to see the errors.")
                 layout.addWidget(label)
-
-                for file, errors in files_with_errors.items():
-                    # Extract RDF folder name and file basename
-                    rdf_folder = os.path.basename(os.path.dirname(file))
-                    file_basename = os.path.basename(file)
-                    display_name = f"{rdf_folder}/{file_basename}"
-
-                    file_button = QPushButton(display_name)
-                    file_button.clicked.connect(lambda _, f=file, e=errors: self.show_file_errors(f, e))
-                    layout.addWidget(file_button)
             else:
                 label = QLabel("All files validated successfully.")
                 layout.addWidget(label)
 
-            # Create a container widget for the layout
-            container = QWidget()
-            container.setLayout(layout)
-
-            # Create a scroll area and set its widget
-            scroll_area = QScrollArea()
-            scroll_area.setWidget(container)
-            scroll_area.setWidgetResizable(True)
-
-            # Create the main layout and add the scroll area to it
-            main_layout = QVBoxLayout()
-            main_layout.addWidget(scroll_area)
-
-            dialog.setLayout(main_layout)
+            dialog.setLayout(layout)
             dialog.exec()
         except Exception as e:
             print(f"Error showing results: {e}")

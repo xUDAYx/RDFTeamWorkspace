@@ -1,0 +1,53 @@
+{
+    "rules": [
+        {
+            "description": "No HTML tag should be present",
+            "pattern": "<html.*?>"
+        },
+        {
+            "description": "No HEAD tag should be present",
+            "pattern": "<head.*?>"
+        },
+        {
+            "description": "No BODY tag should be present",
+            "pattern": "<body.*?>"
+        },
+        {
+            "description": "No div tag should be present outside <td> tag",
+            "pattern": "<div.?>.?(?!</td>)"
+        },
+        {
+          "description": "No internal CSS should be applied to the UI",
+          "pattern": "<style.*?>.*?</style>"
+
+        },
+        {
+          "description": "No external CSS should be applied to the UI file",
+          "pattern": "<link.*?rel=['\"]stylesheet['\"].*?>"
+        },
+        {
+          "description": "Table tag should be present",
+          "pattern": "<table\\s*.*?>"
+        },
+        {
+          "description": "File must contain a table tag with class 'section'",
+          "pattern": "<table\\s*class\\s*=\\s*[\"']\\s*section\\s*[\"']"
+        },
+        {
+          "description": "File must contain a tr tag inside table tag",
+          "pattern": "<table.*?>.*?<tr.*?>.*?</tr>.*?</table>"
+        },
+        {
+          "description": "File must contain a td tag inside table tag",
+          "pattern": "<table.*?>.*?<td.*?>.*?</td>.*?</table>"
+        },
+        {
+          "description": "PHP Rule: only call getYYY() functions",
+          "pattern": "<\\?php.*?\\b(?!getYYY\\()[a-zA-Z_][a-zA-Z0-9_]*\\(.*?\\).*?\\?>"
+        },
+        {
+          "description": "Only one UI page can be present in one UI file",
+          "pattern": "(?s)<div.*?class=['\"]ui-page['\"].*?</div>.*?(<div.*?class=['\"]ui-page['\"].*?</div>)"
+        }
+    ]
+  }

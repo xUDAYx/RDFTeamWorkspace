@@ -1,0 +1,8 @@
+{
+  "python": [],
+  "html": ["html", "head", "body", "div", "span", "p", "a", "img", "table", "tr", "td", "th"],
+  "javascript": ["function", "var", "let", "const", "if", "else", "for", "while", "return", "console.log", "document", "window"],
+  "css": ["color", "background-color", "font-size", "margin", "padding", "border"],
+  "php": ["<?php", "?>", "echo", "function", "class", "public", "private", "protected", "$_GET", "$_POST", "if", "else", "foreach", "while"],
+  "json": ["{", "}", "[", "]", ":", "\""]
+}
