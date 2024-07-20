@@ -1,7 +1,12 @@
 import os
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QFileDialog, QLabel, QSlider, QPushButton, QApplication
+import json
+import logging
+from PyQt6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QFileDialog, QLabel, QSlider, 
+    QPushButton, QApplication, QTreeWidget, QTreeWidgetItem
+)
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtCore import QUrl, Qt,QSize
+from PyQt6.QtCore import QUrl, Qt, QSize
 from PyQt6.QtGui import QIcon
 from urllib.parse import quote
 
@@ -36,7 +41,6 @@ class MobileView(QWidget):
         # Add navigation buttons
         self.navigation_layout = QHBoxLayout()
         self.navigation_layout.setSpacing(0)
-        
 
         icon_size = 25  # Define the icon size
 
@@ -46,7 +50,6 @@ class MobileView(QWidget):
         self.back_button.setIconSize(QSize(icon_size, icon_size))
         self.back_button.setFixedSize(icon_size + 10, icon_size + 10)
         self.back_button.setStyleSheet("border: none;")
-        self.back_button.setToolTip("back")
         self.back_button.clicked.connect(self.web_view_back)
 
         self.forward_button = QPushButton()
@@ -62,7 +65,7 @@ class MobileView(QWidget):
         self.reload_button.setIconSize(QSize(icon_size, icon_size))
         self.reload_button.setFixedSize(icon_size + 10, icon_size + 10)
         self.reload_button.setStyleSheet("border: none;")
-        self.forward_button.setToolTip("reload")
+        self.reload_button.setToolTip("Reload")
         self.reload_button.clicked.connect(self.web_view_reload)
 
         self.navigation_layout.addWidget(self.back_button)
@@ -125,6 +128,12 @@ class MobileView(QWidget):
         # Add the zoom slider to the main layout
         self.layout.addWidget(self.zoom_slider)
 
+        # Create the JSON tree widget
+        self.tree_widget = QTreeWidget()
+        self.tree_widget.setStyleSheet("border:none;")
+        self.container_layout.addWidget(self.tree_widget)
+        self.tree_widget.hide()
+
         self.set_border_color(None)
 
         self.web_view.page().profile().downloadRequested.connect(self.handle_download)
@@ -141,59 +150,100 @@ class MobileView(QWidget):
 
     def load_file_preview(self, file_path):
         try:
-            # Get the file name without the extension
-            file_name = os.path.splitext(os.path.basename(file_path))[0]
+            # Get the file extension
+            file_extension = os.path.splitext(file_path)[1].lower()
 
-            # Get the project directory structure
-            project_path = os.path.dirname(file_path)
-            htdocs_index = project_path.lower().find('htdocs')
+            if file_extension == '.json':
+                self.show_json_in_tree_view(file_path)
+            elif file_extension == '.php' and file_path.endswith('UI.php'):
+                # Get the file name without the extension
+                file_name = os.path.splitext(os.path.basename(file_path))[0]
 
-            if htdocs_index == -1:
-                raise ValueError("Project is not located under htdocs directory")
+                # Get the project directory structure
+                project_path = os.path.dirname(file_path)
+                htdocs_index = project_path.lower().find('htdocs')
 
-            # Extract the relative path up to the project folder
-            relative_path = project_path[htdocs_index + len('htdocs') + 1:]
-            relative_path_parts = relative_path.split(os.sep)
+                if htdocs_index == -1:
+                    raise ValueError("Project is not located under htdocs directory")
 
-            # Determine the project folder name (assuming it is the first folder in the relative path)
-            project_folder = relative_path_parts[0]
-            project_path_up_to_folder = os.path.join(project_folder)
+                # Extract the relative path up to the project folder
+                relative_path = project_path[htdocs_index + len('htdocs') + 1:]
+                relative_path_parts = relative_path.split(os.sep)
 
-            # Construct the preview URL
-            preview_url = f"http://localhost/{quote(project_path_up_to_folder.replace(os.sep, '/'))}/RDFView.php?ui={file_name}"
+                # Determine the project folder name (assuming it is the first folder in the relative path)
+                project_folder = relative_path_parts[0]
+                project_path_up_to_folder = os.path.join(project_folder)
 
-            url = QUrl.fromUserInput(preview_url)
-            print(url)
-            self.web_view.load(url)
+                # Construct the preview URL
+                preview_url = f"http://localhost/{quote(project_path_up_to_folder.replace(os.sep, '/'))}/RDFView.php?ui={file_name}"
+
+                # Load the URL in the web view
+                url = QUrl.fromUserInput(preview_url)
+                print(url)
+                self.web_view.load(url)
+                self.tree_widget.clear()
+                self.tree_widget.hide()
+                self.web_view.show()
         except Exception as e:
             print(f"Failed to load preview: {e}")
             self.web_view.setHtml("<html><body><h1>Failed to load preview</h1></body></html>")
 
+    def show_json_in_tree_view(self, file_path):
+        try:
+            with open(file_path, 'r') as json_file:
+                json_data = json.load(json_file)
+                self.populate_tree_widget(json_data)
+                self.web_view.setHtml("<html><body></body></html>")  # Clear the web view
+                self.web_view.hide()
+                self.tree_widget.show()
+        except Exception as e:
+            print(f"Error loading JSON file: {e}")
+            logging.error(f"Error loading JSON file: {e}")
+
+    def populate_tree_widget(self, data, parent_item=None):
+        if parent_item is None:
+            self.tree_widget.clear()
+            parent_item = self.tree_widget.invisibleRootItem()
+
+        if isinstance(data, dict):
+            for key, value in data.items():
+                item = QTreeWidgetItem(parent_item, [key])
+                self.populate_tree_widget(value, item)
+        elif isinstance(data, list):
+            for i, value in enumerate(data):
+                item = QTreeWidgetItem(parent_item, [f"Item {i}"])
+                self.populate_tree_widget(value, item)
+        else:
+            item = QTreeWidgetItem(parent_item, [str(data)])
+
     def clear_view(self):
         # Load a blank page
         self.web_view.setHtml("<html><body></body></html>")
+        self.tree_widget.clear()
 
     def handle_download(self, download):
         try:
             # Choose the default directory and file path
-            default_path = os.path.join(os.path.expanduser('~'), 'Downloads', download.downloadFileName())
+            default_path = os.path.join(os.path.expanduser('~'), download.path().split('/')[-1])
 
-            # Show a file dialog to let the user choose the location
+            # Display the save file dialog
             file_path, _ = QFileDialog.getSaveFileName(self, "Save File", default_path)
 
+            # If the user cancels the dialog, file_path will be empty
             if file_path:
+                # Set the path where the file will be saved
                 download.setPath(file_path)
+
+                # Accept the download request
                 download.accept()
         except Exception as e:
-            print(f"Failed to handle download")
+            print(f"Error handling download: {e}")
 
     def web_view_back(self):
-        if self.web_view.history().canGoBack():
-            self.web_view.back()
+        self.web_view.back()
 
     def web_view_forward(self):
-        if self.web_view.history().canGoForward():
-            self.web_view.forward()
+        self.web_view.forward()
 
     def web_view_reload(self):
         self.web_view.reload()
