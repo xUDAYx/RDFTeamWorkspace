@@ -52,5 +52,6 @@ if not exist "%local_dir%\.git" (
     popd
 )
 
-echo Script completed.
+echo Update completed.
+echo Facing any bugs? Report to developers at %repo_url%/issues
 pause
