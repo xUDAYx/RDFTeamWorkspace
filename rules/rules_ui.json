@@ -27,7 +27,7 @@
         },
         {
           "description": "Table tag should be present",
-          "pattern": "<table\\s*.*?>"
+          "pattern": "<table\\s*.*?"
         },
         {
           "description": "File must contain a table tag with class 'section'",
@@ -42,9 +42,10 @@
           "pattern": "<table.*?>.*?<td.*?>.*?</td>.*?</table>"
         },
         {
-          "description": "PHP Rule: only call getYYY() functions",
-          "pattern": "<\\?php.*?\\b(?!getYYY\\()[a-zA-Z_][a-zA-Z0-9_]*\\(.*?\\).*?\\?>"
-        },
+          "description": "From BOV file you call only get() function",
+          "pattern": "get\\.*\\(\\)"
+        }
+        ,
         {
           "description": "Only one UI page can be present in one UI file",
           "pattern": "(?s)<div.*?class=['\"]ui-page['\"].*?</div>.*?(<div.*?class=['\"]ui-page['\"].*?</div>)"

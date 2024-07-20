@@ -745,10 +745,13 @@ class ProjectView(QWidget):
                 raise ValueError("Project path is not set. Please ensure the path is valid.")
             
             files_to_validate = []
+            valid_files = {"Action.js", "BVO.php", "BW.php", "Data.json", "UI.php"}
+            
             for root, dirs, files in os.walk(project_path):
                 for file in files:
-                    file_path = os.path.join(root, file)
-                    files_to_validate.append(file_path)
+                    if any(file.endswith(ext) for ext in valid_files):
+                        file_path = os.path.join(root, file)
+                        files_to_validate.append(file_path)
             return files_to_validate
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Failed to collect files to validate: {e}")
@@ -758,36 +761,44 @@ class ProjectView(QWidget):
             errors = []
             table_rule_present = False
             section_rule_present = False
+            get_rule_present = False
             table_rule = None
             section_rule = None
+            get_rule = None
 
             lines = content.splitlines()
 
             for rule in rules["rules"]:
+                # Check for specific descriptions and set flags
                 if rule["description"] == "Table tag should be present":
                     table_rule_present = True
                     table_rule = rule
                     continue
-
                 elif rule["description"] == "File must contain a table tag with class 'section'":
                     section_rule_present = True
                     section_rule = rule
                     continue
+                elif rule["description"] == "From BOV file you call only get() function":
+                    get_rule_present = True
+                    get_rule = rule
+                    continue
 
+                # Apply other rules
                 # Apply other rules
                 for i, line in enumerate(lines, start=1):
                     if re.search(rule["pattern"], line):
                         errors.append(f"Line {i}: {rule['description']}")
 
-            if table_rule_present:
-                table_found = any(re.search(table_rule["pattern"], line) for line in lines)
-                if not table_found:
-                    errors.append("Line N/A: Table tag should be present")
+            # Check table rules
+            if table_rule_present and not re.search(table_rule["pattern"], content):
+                errors.append(table_rule["description"])
 
-            if section_rule_present:
-                section_found = any(re.search(section_rule["pattern"], line) for line in lines)
-                if not section_found:
-                    errors.append("Line N/A: Class section should be present in Table Tag")
+            # Check section rules
+            if section_rule_present and not re.search(section_rule["pattern"], content):
+                errors.append(section_rule["description"])
+
+            if get_rule_present and not re.search(get_rule["pattern"], content):
+                errors.append(get_rule["description"])
 
             return errors
         except Exception as e:
@@ -842,6 +853,7 @@ class ProjectView(QWidget):
             return self.files_with_errors
         except Exception as e:
             print(f"Error validating files: {e}")
+
 
     def show_results(self, files_with_errors):
         try:

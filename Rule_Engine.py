@@ -68,8 +68,10 @@ class RuleEngine:
             errors = []
             table_rule_present = False
             section_rule_present = False
+            get_rule_present = False
             table_rule = None
             section_rule = None
+            get_rule = None
 
             lines = content.splitlines()
 
@@ -82,6 +84,10 @@ class RuleEngine:
                 elif rule["description"] == "File must contain a table tag with class 'section'":
                     section_rule_present = True
                     section_rule = rule
+                    continue
+                elif rule["description"] == "From BOV file you call only get() function":
+                    get_rule_present = True
+                    get_rule = rule
                     continue
 
                 # Apply other rules
@@ -97,6 +103,9 @@ class RuleEngine:
             # Check section rules
             if section_rule_present and not re.search(section_rule["pattern"], content):
                 errors.append(section_rule["description"])
+
+            if get_rule_present and not re.search(get_rule["pattern"], content):
+                errors.append(get_rule["description"])
 
             return errors
         except Exception as e:
