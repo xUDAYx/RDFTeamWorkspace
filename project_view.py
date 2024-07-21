@@ -476,6 +476,9 @@ class ProjectView(QWidget):
             
             
     def merge_project(self):
+        if not hasattr(self, 'folder_path') or not self.folder_path:
+                QMessageBox.warning(self, "Project Not Opened", "Open a project first to merge new project")
+                return
     # Prompt the user to select another project folder to merge
         try:
             merge_folder_path = QFileDialog.getExistingDirectory(self, "Select Project to Merge", QDir.homePath())
