@@ -3,13 +3,57 @@ import json
 import logging
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFileDialog, QLabel, QSlider, 
-    QPushButton, QApplication, QTreeWidget, QTreeWidgetItem
+    QPushButton, QApplication,QMessageBox,QInputDialog, QTreeWidget,QDialog, QTreeWidgetItem
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtCore import QUrl, Qt, QSize
+from PyQt6.QtCore import QUrl, Qt, QSize,QPoint
 from PyQt6.QtGui import QIcon
 from urllib.parse import quote
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWebEngineCore import QWebEnginePage
+class CustomDialog(QDialog):
+    def __init__(self, message, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Message")
+        self.setModal(True)
+        self.layout = QVBoxLayout()
+        self.setLayout(self.layout)
+        
+        # Message label
+        self.label = QLabel(message)
+        self.layout.addWidget(self.label)
+        
+        # OK button
+        self.ok_button = QPushButton("OK")
+        self.ok_button.clicked.connect(self.accept)
+        self.layout.addWidget(self.ok_button)
+        
+        self.setFixedSize(250, 100)
+        
+        # Position the dialog slightly to the right from the left edge and slightly to the left from the right edge of the screen
+        screen_rect = QApplication.primaryScreen().availableGeometry()
+        dialog_rect = self.geometry()
+        x = int(screen_rect.left() + 20)  # Shift 20 pixels to the right from the left edge
+        x = int(screen_rect.right() - dialog_rect.width() - 50)  # Shift 20 pixels to the left from the right edge
+        y = int(screen_rect.top() + (screen_rect.height() - dialog_rect.height()) / 2)
+        self.move(QPoint(x, y))
 
+class CustomWebEnginePage(QWebEnginePage):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+    
+    def javaScriptAlert(self, frame, msg):
+        dialog = CustomDialog(msg)
+        dialog.exec()
+
+    def javaScriptConfirm(self, frame, msg):
+        reply = QMessageBox.question(None, "JavaScript Confirm", msg, 
+                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        return reply == QMessageBox.StandardButton.Yes
+
+    def javaScriptPrompt(self, frame, msg, default_value):
+        text, ok = QInputDialog.getText(None, "JavaScript Prompt", msg, text=default_value)
+        return text if ok else None
 
 class MobileView(QWidget):
     def __init__(self, parent=None):
@@ -116,7 +160,12 @@ class MobileView(QWidget):
 
         # Add the container widget to the main layout
         self.layout.addWidget(self.container_widget, alignment=Qt.AlignmentFlag.AlignCenter)
+        # Set the custom page to handle JS dialogs
+        self.web_view.setPage(CustomWebEnginePage(self.web_view))
+        # Add the container widget to the main layout
+        self.layout.addWidget(self.container_widget, alignment=Qt.AlignmentFlag.AlignCenter)
 
+        self.container_layout.addWidget(self.web_view)
         # Create the zoom slider
         self.zoom_slider = QSlider(Qt.Orientation.Horizontal)
         self.zoom_slider.setStyleSheet("border: none;")
