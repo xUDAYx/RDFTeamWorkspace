@@ -42,7 +42,7 @@
           "pattern": "<table.*?>.*?<td.*?>.*?</td>.*?</table>"
         },
         {
-          "description": "From BOV file you call only get() function",
+          "description": "From BVO file you call only get() function",
           "pattern": "get\\.*\\(\\)"
         }
         ,
