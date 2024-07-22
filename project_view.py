@@ -295,21 +295,49 @@ class ProjectView(QWidget):
         button_layout = QHBoxLayout()
         self.path_line_edit = QLineEdit()
         self.path_line_edit.setReadOnly(True)
+        self.path_line_edit.setMaximumWidth(300)
         button_layout.addWidget(self.path_line_edit)
 
         refresh_button = QPushButton("Refresh")
+        refresh_button.setStyleSheet("background-color:lightyellow")
         refresh_button.setMaximumWidth(100)
         refresh_button.clicked.connect(self.refresh_directory)
         button_layout.addWidget(refresh_button)
 
-        merge_button = QPushButton("Merge")
-        merge_button.setMaximumWidth(100)
-        merge_button.clicked.connect(self.merge_project)
-        button_layout.addWidget(merge_button)
+        open_another_project_button = QPushButton("open Another project")
+        open_another_project_button.setStyleSheet("background-color:lightgreen")
+        open_another_project_button.clicked.connect(self.select_workspace)
+        open_another_project_button.setMaximumWidth(150)
+        
+        button_layout.addWidget(open_another_project_button)
 
         
 
         layout.addLayout(button_layout)
+        # Create a horizontal layout for the additional buttons
+        additional_buttons_layout = QHBoxLayout()
+
+        open_source_folder_button = QPushButton("Open Source Folder")
+        open_source_folder_button.setStyleSheet("background-color:pink;")
+        open_source_folder_button.setMaximumWidth(150)
+        additional_buttons_layout.addWidget(open_source_folder_button)
+
+        merge_other_uis_button = QPushButton("Merge Other UIs")
+        merge_other_uis_button.setStyleSheet("background-color:lightblue;")
+        merge_other_uis_button.setMaximumWidth(150)
+        additional_buttons_layout.addWidget(merge_other_uis_button)
+
+        merge_other_projects_button = QPushButton("Merge Other Projects")
+        merge_other_projects_button.setStyleSheet("background-color:orange;")
+        merge_other_projects_button.clicked.connect(self.merge_project)
+        merge_other_projects_button.setMaximumWidth(150)
+        additional_buttons_layout.addWidget(merge_other_projects_button)
+
+        more_button = QPushButton("More...")
+        more_button.setMaximumWidth(100)
+        additional_buttons_layout.addWidget(more_button)
+
+        layout.addLayout(additional_buttons_layout)
 
         # Create the table view
         self.table_view = QTableWidget()
@@ -748,13 +776,10 @@ class ProjectView(QWidget):
                 raise ValueError("Project path is not set. Please ensure the path is valid.")
             
             files_to_validate = []
-            valid_files = {"Action.js", "BVO.php", "BW.php", "Data.json", "UI.php"}
-            
             for root, dirs, files in os.walk(project_path):
                 for file in files:
-                    if any(file.endswith(ext) for ext in valid_files):
-                        file_path = os.path.join(root, file)
-                        files_to_validate.append(file_path)
+                    file_path = os.path.join(root, file)
+                    files_to_validate.append(file_path)
             return files_to_validate
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Failed to collect files to validate: {e}")
@@ -764,44 +789,36 @@ class ProjectView(QWidget):
             errors = []
             table_rule_present = False
             section_rule_present = False
-            get_rule_present = False
             table_rule = None
             section_rule = None
-            get_rule = None
 
             lines = content.splitlines()
 
             for rule in rules["rules"]:
-                # Check for specific descriptions and set flags
                 if rule["description"] == "Table tag should be present":
                     table_rule_present = True
                     table_rule = rule
                     continue
+
                 elif rule["description"] == "File must contain a table tag with class 'section'":
                     section_rule_present = True
                     section_rule = rule
                     continue
-                elif rule["description"] == "From BOV file you call only get() function":
-                    get_rule_present = True
-                    get_rule = rule
-                    continue
 
-                # Apply other rules
                 # Apply other rules
                 for i, line in enumerate(lines, start=1):
                     if re.search(rule["pattern"], line):
                         errors.append(f"Line {i}: {rule['description']}")
 
-            # Check table rules
-            if table_rule_present and not re.search(table_rule["pattern"], content):
-                errors.append(table_rule["description"])
+            if table_rule_present:
+                table_found = any(re.search(table_rule["pattern"], line) for line in lines)
+                if not table_found:
+                    errors.append("Line N/A: Table tag should be present")
 
-            # Check section rules
-            if section_rule_present and not re.search(section_rule["pattern"], content):
-                errors.append(section_rule["description"])
-
-            if get_rule_present and not re.search(get_rule["pattern"], content):
-                errors.append(get_rule["description"])
+            if section_rule_present:
+                section_found = any(re.search(section_rule["pattern"], line) for line in lines)
+                if not section_found:
+                    errors.append("Line N/A: Class section should be present in Table Tag")
 
             return errors
         except Exception as e:
@@ -856,7 +873,6 @@ class ProjectView(QWidget):
             return self.files_with_errors
         except Exception as e:
             print(f"Error validating files: {e}")
-
 
     def show_results(self, files_with_errors):
         try:
