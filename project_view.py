@@ -1,17 +1,16 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout,QScrollArea, QTableWidget, QPushButton, QFileDialog, QTableWidgetItem, QHeaderView, QLineEdit, QHBoxLayout,QLabel,QMessageBox,QMenu,QInputDialog, QDialog
+from PyQt6.QtWidgets import QWidget, QVBoxLayout,QScrollArea, QTableWidget, QPushButton, QFileDialog, QTableWidgetItem, QHeaderView, QLineEdit, QHBoxLayout,QLabel,QMessageBox,QMenu,QInputDialog, QDialog, QComboBox
 from PyQt6.QtCore import Qt, QDir, pyqtSignal, QSettings
 from PyQt6.QtGui import QMouseEvent,QAction
 
 from PyQt6.QtGui import QColor, QFont
 from PyQt6.Qsci import QsciScintilla, QsciLexerPython, QsciLexerHTML, QsciLexerJavaScript, QsciLexerCSS
-
+from PyQt6.QtWebEngineWidgets import QWebEngineView
 import os
 import json
 import re
 import shutil
 from pathlib import Path
 import config
-
 
 CURRENT_PROJECT_PATH = None
 
@@ -322,10 +321,11 @@ class ProjectView(QWidget):
         open_source_folder_button.setMaximumWidth(150)
         additional_buttons_layout.addWidget(open_source_folder_button)
 
-        merge_other_uis_button = QPushButton("Merge Other UIs")
-        merge_other_uis_button.setStyleSheet("background-color:lightblue;")
-        merge_other_uis_button.setMaximumWidth(150)
-        additional_buttons_layout.addWidget(merge_other_uis_button)
+        self.merge_other_uis_button = QPushButton("Merge Other UIs")
+        self.merge_other_uis_button.setStyleSheet("background-color:lightblue;")
+        self.merge_other_uis_button.setMaximumWidth(150)
+        self.merge_other_uis_button.clicked.connect(self.open_ui_merger)
+        additional_buttons_layout.addWidget(self.merge_other_uis_button)
 
         merge_other_projects_button = QPushButton("Merge Other Projects")
         merge_other_projects_button.setStyleSheet("background-color:orange;")
@@ -372,6 +372,8 @@ class ProjectView(QWidget):
         rename_action = QAction("Rename", self)
         rename_action.triggered.connect(self.rename_file)
         self.context_menu.addAction(rename_action)
+
+    
     
     def show_context_menu(self, pos):
         table = self.sender()
@@ -911,3 +913,126 @@ class ProjectView(QWidget):
                         if file_name == os.path.basename(error_file):
                             item.setBackground(Qt.GlobalColor.red)
                             break
+
+    def open_ui_merger(self):
+        """
+        Opens the UI merger dialog where the user can select and merge UI files.
+        """
+        dialog = QDialog(self)
+        dialog.setWindowTitle("UI Merger")
+        dialog.setGeometry(100, 100, 600, 400)
+
+        layout = QVBoxLayout()
+        dialog.setLayout(layout)
+
+        # UI File Selection
+        ui_file_layout = QHBoxLayout()
+        ui_file_label = QLabel("Select UI File:")
+        ui_file_combo = QComboBox()
+        ui_file_combo.addItem("-- Select UI File --")
+        self.populate_ui_files(ui_file_combo)
+        ui_file_layout.addWidget(ui_file_label)
+        ui_file_layout.addWidget(ui_file_combo)
+        layout.addLayout(ui_file_layout)
+
+        # Mobile View for UI File Preview
+        self.mobile_view = QWebEngineView()
+        self.mobile_view.setFixedSize(300, 400)
+        self.mobile_view.setStyleSheet("border: 2px solid black; border-radius: 4px;")
+        layout.addWidget(self.mobile_view)
+
+        # Add More Sample UI Files Button
+        add_button = QPushButton("Add More Sample UI Files")
+        add_button.clicked.connect(self.add_sample_ui_files)
+        layout.addWidget(add_button)
+
+        # Merge Button
+        merge_button = QPushButton("Merge UI Files")
+        merge_button.clicked.connect(lambda: self.merge_ui_files(ui_file_combo))
+        layout.addWidget(merge_button)
+
+        # Connect the UI file combo selection change to update the mobile view
+        ui_file_combo.currentIndexChanged.connect(lambda: self.update_mobile_view(ui_file_combo.currentText()))
+
+        dialog.exec()
+
+    def populate_ui_files(self, ui_file_combo):
+        """
+        Populates the combo box with UI files from the 'sample_ui' directory.
+        """
+        ui_files_dir = 'sample_ui'
+        if not os.path.exists(ui_files_dir):
+            os.makedirs(ui_files_dir)
+
+        ui_files = [f for f in os.listdir(ui_files_dir) if f.endswith('.php')]
+        ui_file_combo.addItems(ui_files)
+
+    def merge_ui_files(self, ui_file_combo):
+        """
+        Merges the selected UI file into the RDF_UI folder of the current project.
+        """
+        project_path = config.CURRENT_PROJECT_PATH
+        if not project_path:
+            QMessageBox.warning(self, "Project Not Opened", "Open a project first to merge UI files.")
+            return
+
+        selected_ui_file = ui_file_combo.currentText()
+        if selected_ui_file == "-- Select UI File --":
+            QMessageBox.warning(self, "No UI File Selected", "Please select a UI file to merge.")
+            return
+
+        src_file = os.path.join('sample_ui', selected_ui_file)
+        dst_dir = os.path.join(project_path, 'RDF_UI')
+        os.makedirs(dst_dir, exist_ok=True)
+        dst_file = os.path.join(dst_dir, selected_ui_file)
+
+        try:
+            shutil.copy(src_file, dst_file)
+            QMessageBox.information(self, "Success", f"UI file '{selected_ui_file}' merged successfully!")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"An error occurred while merging the UI file: {str(e)}")
+
+    def load_sample_ui_files(self):
+        """
+        Loads sample UI files from the 'sample_ui' directory into the list widget.
+        """
+        sample_ui_dir = os.path.join(os.getcwd(), 'sample_ui')
+        if not os.path.exists(sample_ui_dir):
+            os.makedirs(sample_ui_dir)
+
+        self.file_list.clear()
+        for file_name in os.listdir(sample_ui_dir):
+            if file_name.endswith(".php"):
+                self.file_list.addItem(file_name)
+
+    def add_sample_ui_files(self):
+        """
+        Opens a file dialog to select and add sample UI files to the 'sample_ui' directory.
+        """
+        file_dialog = QFileDialog()
+        file_dialog.setFileMode(QFileDialog.FileMode.ExistingFiles)
+        file_dialog.setNameFilter("PHP Files (*.php)")
+        if file_dialog.exec():
+            selected_files = file_dialog.selectedFiles()
+            sample_ui_dir = os.path.join(os.getcwd(), 'sample_ui')
+            for file_path in selected_files:
+                file_name = os.path.basename(file_path)
+                dest_path = os.path.join(sample_ui_dir, file_name)
+                if not os.path.exists(dest_path):
+                    shutil.copy(file_path, dest_path)
+            self.load_sample_ui_files()
+
+    def update_mobile_view(self, selected_ui_file):
+        """
+        Updates the mobile view with the selected UI file content.
+        """
+        if selected_ui_file == "-- Select UI File --":
+            return
+        
+        sample_ui_dir = 'sample_ui'
+        file_path = os.path.join(sample_ui_dir, selected_ui_file)
+        
+        if os.path.exists(file_path):
+            with open(file_path, 'r') as file:
+                html_content = file.read()
+                self.mobile_view.setHtml(html_content)
