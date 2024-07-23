@@ -1,8 +1,8 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout,QScrollArea, QTableWidget, QPushButton, QFileDialog, QTableWidgetItem, QHeaderView, QLineEdit, QHBoxLayout,QLabel,QMessageBox,QMenu,QInputDialog, QDialog, QComboBox
-from PyQt6.QtCore import Qt, QDir, pyqtSignal, QSettings
+from PyQt6.QtCore import Qt, QDir, pyqtSignal, QUrl
 from PyQt6.QtGui import QMouseEvent,QAction
 
-from PyQt6.QtGui import QColor, QFont
+from PyQt6.QtGui import QColor, QFont,QDesktopServices
 from PyQt6.Qsci import QsciScintilla, QsciLexerPython, QsciLexerHTML, QsciLexerJavaScript, QsciLexerCSS
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 import os
@@ -319,6 +319,7 @@ class ProjectView(QWidget):
         open_source_folder_button = QPushButton("Open Source Folder")
         open_source_folder_button.setStyleSheet("background-color:pink;")
         open_source_folder_button.setMaximumWidth(150)
+        open_source_folder_button.clicked.connect(self.open_source_folder)
         additional_buttons_layout.addWidget(open_source_folder_button)
 
         self.merge_other_uis_button = QPushButton("Merge Other UIs")
@@ -503,6 +504,13 @@ class ProjectView(QWidget):
             self.populate_tables(folder_path)
             global CURRENT_PROJECT_PATH
             config.CURRENT_PROJECT_PATH = folder_path
+
+    def open_source_folder(self):
+        folder_path = self.path_line_edit.text()
+        if os.path.exists(folder_path):
+            QDesktopServices.openUrl(QUrl.fromLocalFile(folder_path))
+        else:
+            print("Folder does not exist:", folder_path)
             
             
     def merge_project(self):
