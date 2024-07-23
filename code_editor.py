@@ -240,9 +240,9 @@ class CodeEditor(QMainWindow):
                 print(f"{e}")
             self.validate_action = QAction("Validate File")
             self.validate_action.triggered.connect(self.validate_file)
-
-            validation_menu.addAction(self.validate_project_action)
             validation_menu.addAction(self.validate_action)
+            validation_menu.addAction(self.validate_project_action)
+            
 
             validation_button = QToolButton(self)
             validation_button.setText("Validation") 
@@ -412,17 +412,9 @@ class CodeEditor(QMainWindow):
             files_with_errors = self.project_view.validate_files(project_path, rules_mapping, rules_dict)
             self.project_view.show_results(files_with_errors)
 
-        except ValueError as e:
-            QWidget.QMessageBox.critical(None, "Error", str(e))
+        except Exception as e:
+            QMessageBox.critical(None, "Error", str(e))
 
-    def validate_project(self):
-        try:
-            project_path, rules_mapping, rules_dict = self.project_view.initialize_validator()
-            files_with_errors = self.project_view.validate_files(project_path, rules_mapping, rules_dict)
-            self.project_view.show_results(files_with_errors)
-
-        except ValueError as e:
-            QWidget.QMessageBox.critical(None, "Error", str(e))
 
     def open_file_from_project_view(self, file_path):
         try:
