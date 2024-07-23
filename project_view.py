@@ -951,10 +951,6 @@ class ProjectView(QWidget):
         # Buttons Layout
         buttons_layout = QVBoxLayout()
 
-        # Add More Sample UI Files Button
-        add_button = QPushButton("Add More Sample UI Files")
-        add_button.clicked.connect(self.add_sample_ui_files)
-        buttons_layout.addWidget(add_button)
 
         # Merge Button
         merge_button = QPushButton("Merge UI Files")
@@ -1046,23 +1042,6 @@ class ProjectView(QWidget):
         for file_name in os.listdir(sample_ui_dir):
             if file_name.endswith(".php"):
                 self.file_list.addItem(file_name)
-
-    def add_sample_ui_files(self):
-        """
-        Opens a file dialog to select and add sample UI files to the 'sample_ui' directory.
-        """
-        file_dialog = QFileDialog()
-        file_dialog.setFileMode(QFileDialog.FileMode.ExistingFiles)
-        file_dialog.setNameFilter("PHP Files (*.php)")
-        if file_dialog.exec():
-            selected_files = file_dialog.selectedFiles()
-            sample_ui_dir = os.path.join(os.getcwd(), 'sample_ui')
-            for file_path in selected_files:
-                file_name = os.path.basename(file_path)
-                dest_path = os.path.join(sample_ui_dir, file_name)
-                if not os.path.exists(dest_path):
-                    shutil.copy(file_path, dest_path)
-            self.load_sample_ui_files()
 
     def update_mobile_view(self, selected_ui_file):
         """
