@@ -44,8 +44,7 @@
         {
           "description": "From BVO file you call only get() function",
           "pattern": "get\\.*\\(\\)"
-        }
-        ,
+        },
         {
           "description": "Only one UI page can be present in one UI file",
           "pattern": "(?s)<div.*?class=['\"]ui-page['\"].*?</div>.*?(<div.*?class=['\"]ui-page['\"].*?</div>)"
