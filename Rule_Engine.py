@@ -85,7 +85,7 @@ class RuleEngine:
                     section_rule_present = True
                     section_rule = rule
                     continue
-                elif rule["description"] == "From BVO file you call only get() function":
+                elif rule["description"] == "PHP Rule: only call getYYY() functions":
                     get_rule_present = True
                     get_rule = rule
                     continue
