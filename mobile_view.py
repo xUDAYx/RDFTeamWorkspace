@@ -86,24 +86,32 @@ class MobileView(QWidget):
         self.navigation_layout = QHBoxLayout()
         self.navigation_layout.setSpacing(0)
         
+        port_radio_layout = QHBoxLayout()
+
         # Add port input
         self.port_input = QLineEdit()
-        self.port_input.setPlaceholderText("Enter port number")
-        self.port_input.setFixedWidth(100)
-        self.layout.addWidget(self.port_input)
+        self.port_label = QLabel("Enter your port number:")
+        self.port_label.setStyleSheet("font-Weight:bold;")
+        self.port_input.setPlaceholderText("80")
+        self.port_input.setFixedWidth(50)
+        port_radio_layout.addWidget(self.port_label)
+        port_radio_layout.addWidget(self.port_input)
 
         # Add local/server toggle
         self.local_radio = QRadioButton("Local")
+        self.local_radio.setStyleSheet("font-Weight:bold;")
         self.server_radio = QRadioButton("Server")
+        self.server_radio.setStyleSheet("font-Weight:bold;")
         self.button_group = QButtonGroup()
         self.button_group.addButton(self.local_radio)
         self.button_group.addButton(self.server_radio)
         self.local_radio.setChecked(True)
 
-        toggle_layout = QHBoxLayout()
-        toggle_layout.addWidget(self.local_radio)
-        toggle_layout.addWidget(self.server_radio)
-        self.layout.addLayout(toggle_layout)
+        port_radio_layout.addStretch()
+        port_radio_layout.addWidget(self.local_radio)
+        port_radio_layout.addWidget(self.server_radio)
+
+        self.layout.addLayout(port_radio_layout)
 
         icon_size = 25  # Define the icon size
 
