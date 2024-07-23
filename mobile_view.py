@@ -193,16 +193,26 @@ class MobileView(QWidget):
         self.layout.addWidget(self.container_widget, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self.container_layout.addWidget(self.web_view)
-        # Create the zoom slider
-        self.zoom_slider = QSlider(Qt.Orientation.Horizontal)
-        self.zoom_slider.setStyleSheet("border: none;")
-        self.zoom_slider.setMinimum(1)
-        self.zoom_slider.setMaximum(500)
-        self.zoom_slider.setValue(250)  # Initial zoom level
-        self.zoom_slider.valueChanged.connect(self.zoom_changed)
+        # Create the zoom buttons
+        self.zoom_layout = QHBoxLayout()
+        self.zoom_in_button = QPushButton("+")
+        self.zoom_in_button.setMinimumHeight(20)
+        self.zoom_in_button.setFixedWidth(40)
+        self.zoom_in_button.setStyleSheet("background-color:lightblue;font-weight:bold;")
+        self.zoom_in_button.setToolTip("Zoom In")
+        self.zoom_in_button.clicked.connect(self.zoom_in)
 
-        # Add the zoom slider to the main layout
-        self.layout.addWidget(self.zoom_slider)
+        self.zoom_out_button = QPushButton("-")
+        self.zoom_out_button.setMinimumHeight(20)
+        self.zoom_out_button.setFixedWidth(40)
+        self.zoom_out_button.setToolTip("Zoom Out")
+        self.zoom_out_button.setStyleSheet("background-color:lightblue;font-weight:bold;")
+        self.zoom_out_button.clicked.connect(self.zoom_out)
+
+        self.zoom_layout.addWidget(self.zoom_in_button)
+        self.zoom_layout.addWidget(self.zoom_out_button)
+        self.zoom_layout.addStretch()
+        self.layout.addLayout(self.zoom_layout)
 
         # Create the JSON tree widget
         self.tree_widget = QTreeWidget()
