@@ -920,39 +920,81 @@ class ProjectView(QWidget):
         """
         dialog = QDialog(self)
         dialog.setWindowTitle("UI Merger")
-        dialog.setGeometry(100, 100, 600, 400)
+        dialog.setGeometry(100, 100, 800, 400)
 
-        layout = QVBoxLayout()
-        dialog.setLayout(layout)
+        main_layout = QVBoxLayout()
+        dialog.setLayout(main_layout)
+
+        # UI File Selection and Mobile View Layout
+        ui_mobile_layout = QHBoxLayout()
 
         # UI File Selection
-        ui_file_layout = QHBoxLayout()
+        ui_file_layout = QVBoxLayout()
         ui_file_label = QLabel("Select UI File:")
         ui_file_combo = QComboBox()
         ui_file_combo.addItem("-- Select UI File --")
         self.populate_ui_files(ui_file_combo)
         ui_file_layout.addWidget(ui_file_label)
         ui_file_layout.addWidget(ui_file_combo)
-        layout.addLayout(ui_file_layout)
+        ui_file_layout.addStretch()
+        ui_mobile_layout.addLayout(ui_file_layout)
+
 
         # Mobile View for UI File Preview
         self.mobile_view = QWebEngineView()
         self.mobile_view.setFixedSize(300, 400)
         self.mobile_view.setStyleSheet("border: 2px solid black; border-radius: 4px;")
-        layout.addWidget(self.mobile_view)
+        ui_mobile_layout.addWidget(self.mobile_view)
+
+        main_layout.addLayout(ui_mobile_layout)
+
+        # Buttons Layout
+        buttons_layout = QVBoxLayout()
 
         # Add More Sample UI Files Button
         add_button = QPushButton("Add More Sample UI Files")
         add_button.clicked.connect(self.add_sample_ui_files)
-        layout.addWidget(add_button)
+        buttons_layout.addWidget(add_button)
 
         # Merge Button
         merge_button = QPushButton("Merge UI Files")
         merge_button.clicked.connect(lambda: self.merge_ui_files(ui_file_combo))
-        layout.addWidget(merge_button)
+        buttons_layout.addWidget(merge_button)
+
+        main_layout.addLayout(buttons_layout)
 
         # Connect the UI file combo selection change to update the mobile view
         ui_file_combo.currentIndexChanged.connect(lambda: self.update_mobile_view(ui_file_combo.currentText()))
+
+        # Apply modern CSS styles
+        dialog.setStyleSheet("""
+            QDialog {
+                color: #ffffff;
+                font-family: 'Arial', sans-serif;
+            }
+            QLabel {
+                font-size: 16px;
+            }
+            QComboBox {
+                padding: 8px;
+                font-size: 14px;
+                border: 1px solid #cccccc;
+                border-radius: 4px;
+                background-color: #ffffff;
+                color: #000000;
+            }
+            QPushButton {
+                padding: 10px;
+                font-size: 14px;
+                border: none;
+                border-radius: 4px;
+                background-color: #4CAF50;
+                color: white;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
 
         dialog.exec()
 
@@ -1028,10 +1070,10 @@ class ProjectView(QWidget):
         """
         if selected_ui_file == "-- Select UI File --":
             return
-        
+
         sample_ui_dir = 'sample_ui'
         file_path = os.path.join(sample_ui_dir, selected_ui_file)
-        
+
         if os.path.exists(file_path):
             with open(file_path, 'r') as file:
                 html_content = file.read()
