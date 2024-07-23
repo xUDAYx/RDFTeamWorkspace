@@ -230,9 +230,13 @@ class MobileView(QWidget):
         else:
             self.setStyleSheet("border: none;")
 
-    def zoom_changed(self, value):
+    def zoom_in(self):
         # Set zoom level in percentage (100% is default)
-        self.web_view.setZoomFactor(value / 500.0)
+        self.web_view.setZoomFactor(self.web_view.zoomFactor() + 0.1)
+
+    def zoom_out(self):
+        # Set zoom level in percentage (100% is default)
+        self.web_view.setZoomFactor(self.web_view.zoomFactor() - 0.1)
 
     def load_file_preview(self, file_path):
         try:
