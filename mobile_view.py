@@ -2,15 +2,15 @@ import os
 import json
 import logging
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QFileDialog, QLabel, QPushButton, 
-    QApplication, QMessageBox, QInputDialog, QTreeWidget, QDialog, QTreeWidgetItem
+    QWidget, QVBoxLayout, QHBoxLayout, QFileDialog, QLabel, QSlider, 
+    QPushButton, QApplication,QMessageBox,QInputDialog, QTreeWidget,QDialog, QTreeWidgetItem,QLineEdit, QRadioButton, QButtonGroup
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtCore import QUrl, Qt, QSize, QPoint
+from PyQt6.QtCore import QUrl, Qt, QSize,QPoint
 from PyQt6.QtGui import QIcon
 from urllib.parse import quote
+from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEnginePage
-
 class CustomDialog(QDialog):
     def __init__(self, message, parent=None):
         super().__init__(parent)
@@ -85,12 +85,31 @@ class MobileView(QWidget):
         # Add navigation buttons
         self.navigation_layout = QHBoxLayout()
         self.navigation_layout.setSpacing(0)
+        
+        # Add port input
+        self.port_input = QLineEdit()
+        self.port_input.setPlaceholderText("Enter port number")
+        self.port_input.setFixedWidth(100)
+        self.layout.addWidget(self.port_input)
+
+        # Add local/server toggle
+        self.local_radio = QRadioButton("Local")
+        self.server_radio = QRadioButton("Server")
+        self.button_group = QButtonGroup()
+        self.button_group.addButton(self.local_radio)
+        self.button_group.addButton(self.server_radio)
+        self.local_radio.setChecked(True)
+
+        toggle_layout = QHBoxLayout()
+        toggle_layout.addWidget(self.local_radio)
+        toggle_layout.addWidget(self.server_radio)
+        self.layout.addLayout(toggle_layout)
 
         icon_size = 25  # Define the icon size
 
         self.back_button = QPushButton()
         self.back_button.setIcon(QIcon("images/back_button.png"))
-        self.back_button.setToolTip("Back")
+        self.back_button.setToolTip("back")
         self.back_button.setIconSize(QSize(icon_size, icon_size))
         self.back_button.setFixedSize(icon_size + 10, icon_size + 10)
         self.back_button.setStyleSheet("border: none;")
@@ -166,27 +185,16 @@ class MobileView(QWidget):
         self.layout.addWidget(self.container_widget, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self.container_layout.addWidget(self.web_view)
+        # Create the zoom slider
+        self.zoom_slider = QSlider(Qt.Orientation.Horizontal)
+        self.zoom_slider.setStyleSheet("border: none;")
+        self.zoom_slider.setMinimum(1)
+        self.zoom_slider.setMaximum(500)
+        self.zoom_slider.setValue(250)  # Initial zoom level
+        self.zoom_slider.valueChanged.connect(self.zoom_changed)
 
-        # Create the zoom buttons
-        self.zoom_layout = QHBoxLayout()
-        self.zoom_in_button = QPushButton("+")
-        self.zoom_in_button.setMinimumHeight(20)
-        self.zoom_in_button.setFixedWidth(40)
-        self.zoom_in_button.setStyleSheet("background-color:lightblue;font-weight:bold;")
-        self.zoom_in_button.setToolTip("Zoom In")
-        self.zoom_in_button.clicked.connect(self.zoom_in)
-
-        self.zoom_out_button = QPushButton("-")
-        self.zoom_out_button.setMinimumHeight(20)
-        self.zoom_out_button.setFixedWidth(40)
-        self.zoom_out_button.setToolTip("Zoom Out")
-        self.zoom_out_button.setStyleSheet("background-color:lightblue;font-weight:bold;")
-        self.zoom_out_button.clicked.connect(self.zoom_out)
-
-        self.zoom_layout.addWidget(self.zoom_in_button)
-        self.zoom_layout.addWidget(self.zoom_out_button)
-        self.zoom_layout.addStretch()
-        self.layout.addLayout(self.zoom_layout)
+        # Add the zoom slider to the main layout
+        self.layout.addWidget(self.zoom_slider)
 
         # Create the JSON tree widget
         self.tree_widget = QTreeWidget()
@@ -204,13 +212,9 @@ class MobileView(QWidget):
         else:
             self.setStyleSheet("border: none;")
 
-    def zoom_in(self):
+    def zoom_changed(self, value):
         # Set zoom level in percentage (100% is default)
-        self.web_view.setZoomFactor(self.web_view.zoomFactor() + 0.1)
-
-    def zoom_out(self):
-        # Set zoom level in percentage (100% is default)
-        self.web_view.setZoomFactor(self.web_view.zoomFactor() - 0.1)
+        self.web_view.setZoomFactor(value / 500.0)
 
     def load_file_preview(self, file_path):
         try:
@@ -239,7 +243,18 @@ class MobileView(QWidget):
                 project_path_up_to_folder = os.path.join(project_folder)
 
                 # Construct the preview URL
-                preview_url = f"http://localhost/{quote(project_path_up_to_folder.replace(os.sep, '/'))}/RDFView.php?ui={file_name}"
+                port = self.port_input.text() or "80"  # Default to 80 if empty
+                self.port_input.setPlaceholderText("80")
+                # Check if local or server is selected
+                is_local = self.local_radio.isChecked()
+
+                # Construct the preview URL
+                if is_local:
+                    preview_url = f"http://localhost:{port}/{quote(project_path_up_to_folder.replace(os.sep, '/'))}/RDFView.php?ui={file_name}"
+                else:
+                    # Replace with your server URL structure
+                    preview_url = f"https://www.takeitideas.in/software/Projectxxx/RDFView.php?ui={file_name}"
+
 
                 # Load the URL in the web view
                 url = QUrl.fromUserInput(preview_url)
@@ -311,9 +326,3 @@ class MobileView(QWidget):
 
     def web_view_reload(self):
         self.web_view.reload()
-
-if __name__ == '__main__':
-    app = QApplication([])
-    view = MobileView()
-    view.show()
-    app.exec()
