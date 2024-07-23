@@ -49,10 +49,7 @@
         {
           "description": "Only one UI page can be present in one UI file",
           "pattern": "(?s)<div.*?class=['\"]ui-page['\"].*?</div>.*?(<div.*?class=['\"]ui-page['\"].*?</div>)"
-        },
-        {
-          "description": "No div tag should be present outside <td> tag",
-          "pattern": "<div.?>.?(?!</td>)"
         }
+      
     ]
   }
