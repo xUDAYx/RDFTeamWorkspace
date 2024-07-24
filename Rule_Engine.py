@@ -73,8 +73,6 @@ class RuleEngine:
             section_rule = None
             get_rule = None
 
-            lines = content.splitlines()
-
             for rule in rules["rules"]:
                 # Check for specific descriptions and set flags
                 if rule["description"] == "Table tag should be present":
@@ -85,13 +83,13 @@ class RuleEngine:
                     section_rule_present = True
                     section_rule = rule
                     continue
-                elif rule["description"] == "PHP Rule: only call getYYY() functions":
+                elif rule["description"] == "PHP Rule: only call get() functions":
                     get_rule_present = True
                     get_rule = rule
                     continue
 
                 # Apply other rules
-                # Apply other rules
+                lines = content.splitlines()
                 for i, line in enumerate(lines, start=1):
                     if re.search(rule["pattern"], line):
                         errors.append(f"Line {i}: {rule['description']}")
@@ -104,8 +102,19 @@ class RuleEngine:
             if section_rule_present and not re.search(section_rule["pattern"], content):
                 errors.append(section_rule["description"])
 
-            if get_rule_present and not re.search(get_rule["pattern"], content):
-                errors.append(get_rule["description"])
+            # Check get() rule in the entire content
+            if get_rule_present:
+                php_blocks = re.findall(r"<\?php.*?\?>", content, re.DOTALL)
+                for block in php_blocks:
+                    # Find all function calls in the block
+                    function_calls = re.findall(r"\b[a-zA-Z_][a-zA-Z0-9_]*\(", block)
+                    # Remove the opening parenthesis from function names
+                    function_calls = [func[:-1] for func in function_calls]
+                    # Check if there are any function calls that do not start with 'get'
+                    non_get_calls = [func for func in function_calls if not func.startswith("get")]
+                    if non_get_calls:
+                        errors.append(get_rule["description"])
+                        break
 
             return errors
         except Exception as e:
