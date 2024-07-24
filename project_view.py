@@ -303,7 +303,7 @@ class ProjectView(QWidget):
         refresh_button.clicked.connect(self.refresh_directory)
         button_layout.addWidget(refresh_button)
 
-        open_another_project_button = QPushButton("open Another project")
+        open_another_project_button = QPushButton("Open Another project")
         open_another_project_button.setStyleSheet("background-color:lightgreen")
         open_another_project_button.clicked.connect(self.select_workspace)
         open_another_project_button.setMaximumWidth(150)
