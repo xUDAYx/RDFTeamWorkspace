@@ -5,12 +5,12 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFileDialog, QLabel, QSlider, 
     QPushButton, QApplication,QMessageBox,QInputDialog, QTreeWidget,QDialog, QTreeWidgetItem,QLineEdit, QRadioButton, QButtonGroup
 )
-from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWebEngineWidgets import QWebEngineView # type: ignore
 from PyQt6.QtCore import QUrl, Qt, QSize,QPoint
 from PyQt6.QtGui import QIcon
 from urllib.parse import quote
-from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtWebEngineCore import QWebEnginePage
+from PyQt6.QtWebEngineWidgets import QWebEngineView # type: ignore
+from PyQt6.QtWebEngineCore import QWebEnginePage # type: ignore
 class CustomDialog(QDialog):
     def __init__(self, message, parent=None):
         super().__init__(parent)
@@ -275,8 +275,7 @@ class MobileView(QWidget):
                     preview_url = f"http://localhost:{port}/{quote(project_path_up_to_folder.replace(os.sep, '/'))}/RDFView.php?ui={file_name}"
                 else:
                     # Replace with your server URL structure
-                    preview_url = f"https://www.takeitideas.in/software/Projectxxx/RDFView.php?ui={file_name}"
-
+                    preview_url = f"https://takeitideas.in/software/RDFMicroProjects/reminderApp/RDFView.php?ui=reminderAppUI={file_name}"
 
                 # Load the URL in the web view
                 url = QUrl.fromUserInput(preview_url)
