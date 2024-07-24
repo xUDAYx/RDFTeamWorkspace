@@ -18,6 +18,7 @@ from theme import DarkTheme
 from PyQt6.Qsci import QsciAbstractAPIs, QsciScintilla, QsciDocument,QsciLexerJSON
 from autocompleter import AutoCompleter
 from Rule_Engine import RuleEngine
+from code_formatter import CodeFormatter
 
 
 class MultiLanguageHighlighter(QsciAbstractAPIs):
@@ -446,10 +447,14 @@ class CodeEditor(QMainWindow):
             publish_button.setStyleSheet("background-color:red;color:white;font-weight:bold")
             publish_button.clicked.connect(self.publish_code)
 
+            format_button = QPushButton("Format Code")
+            format_button.clicked.connect(lambda: self.format_current_code(editor, file_path))
+
             search_tab_layout = QHBoxLayout()
             search_tab_layout.addStretch()
             search_tab_layout.addWidget(search_bar)
-            search_tab_layout.addWidget(publish_button)  # Add the publish button to the search tab layout
+            search_tab_layout.addWidget(publish_button)
+            search_tab_layout.addWidget(format_button)  # Add the format button to the layout
             layout.addLayout(search_tab_layout)
 
             splitter = QSplitter(Qt.Orientation.Vertical)
@@ -484,13 +489,11 @@ class CodeEditor(QMainWindow):
                     terminal.write(f"Loaded file: {file_path}\n")
                     self.rule_engine.validate_and_apply_rules(file_path)
 
-                    # Set up syntax highlighter and auto-completer
                     extension = os.path.splitext(file_path)[1][1:]
                     language = self.get_language_from_extension(extension)
                     lexer = self.get_lexer_for_language(language)
                     editor.setLexer(lexer)
 
-                    # Set up autocompleter
                     autocompleter = AutoCompleter(lexer)
                     autocompleter.add_custom_apis([
                         "<table class=\"section\">", "<tr>", "<td>", "</td>", "</tr>", "</table>",
@@ -500,9 +503,8 @@ class CodeEditor(QMainWindow):
                     ])
                     autocompleter.prepare()
 
-                # Set up the editor's auto-completion settings
-                editor.setAutoCompletionThreshold(1)  # Show auto-completions after 1 character
-                editor.setAutoCompletionCaseSensitivity(False)  # Make auto-completion case insensitive
+                editor.setAutoCompletionThreshold(1)
+                editor.setAutoCompletionCaseSensitivity(False)
                 editor.setAutoCompletionReplaceWord(False)
 
             except Exception as e:
@@ -511,6 +513,13 @@ class CodeEditor(QMainWindow):
         except Exception as e:
             print(f"Failed to open new tab: {e}")
 
+    def format_current_code(self, editor, file_path):
+        try:
+            input_code = editor.text()
+            formatted_code = CodeFormatter.format_code(file_path, input_code)
+            editor.setText(formatted_code)
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to format code: {e}")
 
     def publish_code(self):
         try:
