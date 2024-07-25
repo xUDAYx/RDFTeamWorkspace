@@ -7,7 +7,7 @@ from mobile_view import MobileView
 from PyQt6.Qsci import QsciScintilla
 import logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
+# this is a rule engine
 class RuleEngine:
     def __init__(self, tab_widget, rules, mobile_view):
         self.tab_widget = tab_widget
