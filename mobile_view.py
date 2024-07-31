@@ -3,14 +3,15 @@ import json
 import logging
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFileDialog, QLabel, QSlider, 
-    QPushButton, QApplication,QMessageBox,QInputDialog, QTreeWidget,QDialog, QTreeWidgetItem,QLineEdit, QRadioButton, QButtonGroup
+    QPushButton, QApplication, QMessageBox, QInputDialog, QTreeWidget, QDialog, QTreeWidgetItem, QLineEdit, QRadioButton, QButtonGroup
 )
-from PyQt6.QtWebEngineWidgets import QWebEngineView # type: ignore
-from PyQt6.QtCore import QUrl, Qt, QSize,QPoint
-from PyQt6.QtGui import QIcon
+from PyQt6.QtWebEngineWidgets import QWebEngineView  # type: ignore
+from PyQt6.QtCore import QUrl, Qt, QSize, QPoint
+from PyQt6.QtGui import QIcon,QGuiApplication
 from urllib.parse import quote
-from PyQt6.QtWebEngineWidgets import QWebEngineView # type: ignore
-from PyQt6.QtWebEngineCore import QWebEnginePage # type: ignore
+from PyQt6.QtWebEngineCore import QWebEnginePage  # type: ignore
+
+
 class CustomDialog(QDialog):
     def __init__(self, message, parent=None):
         super().__init__(parent)
@@ -18,18 +19,18 @@ class CustomDialog(QDialog):
         self.setModal(True)
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
-        
+
         # Message label
         self.label = QLabel(message)
         self.layout.addWidget(self.label)
-        
+
         # OK button
         self.ok_button = QPushButton("OK")
         self.ok_button.clicked.connect(self.accept)
         self.layout.addWidget(self.ok_button)
-        
+
         self.setFixedSize(250, 100)
-        
+
         # Position the dialog slightly to the right from the left edge and slightly to the left from the right edge of the screen
         screen_rect = QApplication.primaryScreen().availableGeometry()
         dialog_rect = self.geometry()
@@ -38,22 +39,24 @@ class CustomDialog(QDialog):
         y = int(screen_rect.top() + (screen_rect.height() - dialog_rect.height()) / 2)
         self.move(QPoint(x, y))
 
+
 class CustomWebEnginePage(QWebEnginePage):
     def __init__(self, parent=None):
         super().__init__(parent)
-    
+
     def javaScriptAlert(self, frame, msg):
         dialog = CustomDialog(msg)
         dialog.exec()
 
     def javaScriptConfirm(self, frame, msg):
-        reply = QMessageBox.question(None, "JavaScript Confirm", msg, 
+        reply = QMessageBox.question(None, "JavaScript Confirm", msg,
                                      QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         return reply == QMessageBox.StandardButton.Yes
 
     def javaScriptPrompt(self, frame, msg, default_value):
         text, ok = QInputDialog.getText(None, "JavaScript Prompt", msg, text=default_value)
         return text if ok else None
+
 
 class MobileView(QWidget):
     def __init__(self, parent=None):
@@ -65,14 +68,15 @@ class MobileView(QWidget):
         self.container_widget = QWidget()
         self.container_widget.setFixedWidth(300)
 
-        # Get available screen height
-        available_height = QApplication.primaryScreen().availableGeometry().height()
+        screen = QGuiApplication.primaryScreen().availableGeometry()
+        screen_height = screen.height()
 
-        # Set height based on available screen height
-        self.container_widget.setFixedHeight(min(max(400, available_height - 100), 600))
+        container_height = int(screen_height * 0.7)
+        self.container_widget.setFixedHeight(container_height)
 
         self.container_widget.setStyleSheet("""
-            QWidget {
+            QWidget { 
+                
                 border: 10px solid black;
                 border-radius: 20px;
                 background-color: white;
@@ -85,13 +89,13 @@ class MobileView(QWidget):
         # Add navigation buttons
         self.navigation_layout = QHBoxLayout()
         self.navigation_layout.setSpacing(0)
-        
+
         port_radio_layout = QHBoxLayout()
 
         # Add port input
         self.port_input = QLineEdit()
         self.port_label = QLabel("Enter your port number:")
-        self.port_label.setStyleSheet("font-Weight:bold;")
+        self.port_label.setStyleSheet("font-weight:bold;")
         self.port_input.setPlaceholderText("80")
         self.port_input.setFixedWidth(50)
         port_radio_layout.addWidget(self.port_label)
@@ -99,9 +103,9 @@ class MobileView(QWidget):
 
         # Add local/server toggle
         self.local_radio = QRadioButton("Local")
-        self.local_radio.setStyleSheet("font-Weight:bold;")
+        self.local_radio.setStyleSheet("font-weight:bold;")
         self.server_radio = QRadioButton("Server")
-        self.server_radio.setStyleSheet("font-Weight:bold;")
+        self.server_radio.setStyleSheet("font-weight:bold;")
         self.button_group = QButtonGroup()
         self.button_group.addButton(self.local_radio)
         self.button_group.addButton(self.server_radio)
@@ -117,7 +121,7 @@ class MobileView(QWidget):
 
         self.back_button = QPushButton()
         self.back_button.setIcon(QIcon("images/back_button.png"))
-        self.back_button.setToolTip("back")
+        self.back_button.setToolTip("Back")
         self.back_button.setIconSize(QSize(icon_size, icon_size))
         self.back_button.setFixedSize(icon_size + 10, icon_size + 10)
         self.back_button.setStyleSheet("border: none;")
@@ -187,18 +191,16 @@ class MobileView(QWidget):
 
         # Add the container widget to the main layout
         self.layout.addWidget(self.container_widget, alignment=Qt.AlignmentFlag.AlignCenter)
+
         # Set the custom page to handle JS dialogs
         self.web_view.setPage(CustomWebEnginePage(self.web_view))
-        # Add the container widget to the main layout
-        self.layout.addWidget(self.container_widget, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        self.container_layout.addWidget(self.web_view)
         # Create the zoom buttons
         self.zoom_layout = QHBoxLayout()
         self.zoom_in_button = QPushButton("+")
         self.zoom_in_button.setMinimumHeight(20)
         self.zoom_in_button.setFixedWidth(40)
-        self.zoom_in_button.setStyleSheet("background-color:lightblue;font-weight:bold;")
+        self.zoom_in_button.setStyleSheet("background-color: lightblue; font-weight: bold;")
         self.zoom_in_button.setToolTip("Zoom In")
         self.zoom_in_button.clicked.connect(self.zoom_in)
 
@@ -206,15 +208,17 @@ class MobileView(QWidget):
         self.zoom_out_button.setMinimumHeight(20)
         self.zoom_out_button.setFixedWidth(40)
         self.zoom_out_button.setToolTip("Zoom Out")
-        self.zoom_out_button.setStyleSheet("background-color:lightblue;font-weight:bold;")
+        self.zoom_out_button.setStyleSheet("background-color: lightblue; font-weight: bold;")
         self.zoom_out_button.clicked.connect(self.zoom_out)
 
+        self.zoom_layout.addStretch(1)
         self.zoom_layout.addWidget(self.zoom_in_button)
         self.zoom_layout.addWidget(self.zoom_out_button)
-        self.zoom_layout.addStretch()
+        self.zoom_layout.addStretch(1)
+
+        # Add the zoom buttons to the main layout
         self.layout.addLayout(self.zoom_layout)
 
-        # Create the JSON tree widget
         self.tree_widget = QTreeWidget()
         self.tree_widget.setStyleSheet("border:none;")
         self.container_layout.addWidget(self.tree_widget)
