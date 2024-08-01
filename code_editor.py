@@ -2,12 +2,15 @@ import re
 import json
 import os, sys
 import logging,chardet
+import traceback
+from ftplib import FTP,error_perm
+import time
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 from PyQt6.QtGui import QSyntaxHighlighter
 from PyQt6.Qsci import QsciDocument
-from PyQt6.QtWidgets import QPlainTextEdit,QLabel, QMainWindow,QLineEdit,QMenu, QVBoxLayout, QWidget, QSplitter, QTreeView, QToolBar, QFileDialog, QToolButton, QTabWidget, QApplication, QMessageBox, QPushButton, QTextEdit, QScrollBar, QHBoxLayout, QSizePolicy
+from PyQt6.QtWidgets import  QDialog,QPlainTextEdit, QProgressBar,QLabel, QMainWindow,QLineEdit,QMenu, QVBoxLayout, QWidget, QSplitter, QTreeView, QToolBar, QFileDialog, QToolButton, QTabWidget, QApplication, QMessageBox, QPushButton, QTextEdit, QScrollBar, QHBoxLayout, QSizePolicy
 from PyQt6.QtGui import  QTextCharFormat,QAction, QPixmap, QFileSystemModel, QIcon, QFont, QPainter, QColor, QTextFormat, QTextCursor, QKeySequence, QShortcut
-from PyQt6.QtCore import Qt, QModelIndex, QTimer, QDir, pyqtSlot, QSize, QRect, QProcess, QPoint
+from PyQt6.QtCore import Qt, QModelIndex, QTimer, QDir,QThread, pyqtSlot, QSize, QRect, QProcess, QPoint, pyqtSignal
 from PyQt6.Qsci import QsciScintilla, QsciLexerPython, QsciLexerHTML, QsciLexerJavaScript, QsciLexerCSS
 
 from terminal_widget import TerminalWidget
@@ -445,7 +448,7 @@ class CodeEditor(QMainWindow):
 
             publish_button = QPushButton("Publish")
             publish_button.setStyleSheet("background-color:red;color:white;font-weight:bold")
-            publish_button.clicked.connect(self.publish_code)
+            publish_button.clicked.connect(self.on_publish)
 
             format_button = QPushButton("Format Code")
             format_button.clicked.connect(lambda: self.format_current_code(editor, file_path))
@@ -521,34 +524,34 @@ class CodeEditor(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to format code: {e}")
 
-    def publish_code(self):
+    
+
+    def on_publish(self):
         try:
-            # Create a new window
-            self.publish_window = QWidget()
-            self.publish_window.setWindowTitle("Publish Code")
+            server = 'ftp.takeitideas.in'
+            username = "u257313635"
+            password = 'Vijaysss@123'
             
-            layout = QVBoxLayout()
+            current_index = self.tab_widget.currentIndex()
+            current_tab = self.tab_widget.widget(current_index)
+            project_dir = os.path.dirname(os.path.dirname(current_tab.file_path))
+            project_name = os.path.basename(project_dir)
+            remote_dir = f'/public_html/RDFProjects_ROOT/{project_name}'
             
-            # Construct the dynamic path to the image
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            image_path = os.path.join(current_dir, 'images', 'publish_image.jpg')  # Replace 'publish_image.jpg' with the actual image name
+            # Create and show the progress dialog
+            dialog = PublishDialog(self)
+            dialog.show()
+
+            # Start the upload in a separate thread
+            self.upload_thread = UploadThread(server, username, password, project_dir, remote_dir)
+            self.upload_thread.progress.connect(dialog.update_progress)
+            self.upload_thread.finished.connect(dialog.upload_finished)
+            self.upload_thread.start()
             
-            # Add an image
-            label = QLabel()
-            pixmap = QPixmap(image_path)
-            label.setPixmap(pixmap)
-            layout.addWidget(label)
-            
-            self.publish_window.setLayout(layout)
-            
-            # Set initial small size
-            self.publish_window.resize(100, 100)  # Initial small size
-            
-            # Adjust the size to fit the image after loading it
-            # self.publish_window.adjustSize()
-            self.publish_window.show()
         except Exception as e:
-            print(f"{e}")
+            QMessageBox.warning(self, 'Error', f'Failed to publish project: {e}')
+    
+
 
 
     def get_language_from_extension(self, extension):
@@ -747,3 +750,133 @@ class CodeEditor(QMainWindow):
         error_dialog.setWindowTitle("Error")
         error_dialog.exec()
 
+class UploadThread(QThread):
+    progress = pyqtSignal(int)
+    finished = pyqtSignal(bool)
+
+    def __init__(self, server, username, password, local_dir, remote_dir):
+        super().__init__()
+        self.server = server
+        self.username = username
+        self.password = password
+        self.local_dir = local_dir
+        self.remote_dir = remote_dir
+
+    def run(self):
+        try:
+            self.upload_directory_to_ftp(self.server, self.username, self.password, self.local_dir, self.remote_dir)
+            self.finished.emit(True)
+        except Exception as e:
+            print(f"Upload failed: {e}")
+            self.finished.emit(False)
+
+    def upload_directory_to_ftp(self,server, username, password, local_dir, remote_dir):
+        
+        
+        ftp = None
+        try:
+            ftp = FTP(server, timeout=60)
+            ftp.login(user=username, passwd=password)
+
+            def make_remote_dirs(remote_directory):
+                dirs = remote_directory.lstrip('/').split('/')
+                path = ''
+                for dir in dirs:
+                    if dir:
+                        path += f'/{dir}'
+                        try:
+                            ftp.cwd(path)
+                            print(f"Directory exists: {path}")
+                        except error_perm:
+                            try:
+                                ftp.mkd(path)
+                                print(f"Created directory: {path}")
+                            except error_perm as e:
+                                print(f"Could not create directory {path}: {e}")
+                                if 'File exists' in str(e):
+                                    continue
+                                else:
+                                    raise
+
+            def upload_file(local_file_path, remote_file_path):
+                total_size = os.path.getsize(local_file_path)
+                with open(local_file_path, 'rb') as file_data:
+                    try:
+                        def upload_progress(block):
+                            nonlocal uploaded_size
+                            uploaded_size += len(block)
+                            progress_percentage = int((uploaded_size / total_size) * 100)
+                            self.progress.emit(progress_percentage)
+
+                        uploaded_size = 0
+                        # Update the current file being uploaded
+                        ftp.storbinary(f'STOR {remote_file_path}', file_data, callback=upload_progress)
+                    except error_perm as e:
+                        print(f"Failed to upload {remote_file_path}: {e}")
+                        raise
+
+            make_remote_dirs(remote_dir)
+
+            total_files = sum([len(files) for _, _, files in os.walk(local_dir)])
+            processed_files = 0
+
+            for root, dirs, files in os.walk(local_dir):
+                for directory in dirs:
+                    local_dir_path = os.path.join(root, directory)
+                    relative_dir_path = os.path.relpath(local_dir_path, local_dir).replace("\\", "/")
+                    remote_sub_dir = os.path.join(remote_dir, relative_dir_path).replace("\\", "/")
+                    make_remote_dirs(remote_sub_dir)
+
+                for file in files:
+                    local_file_path = os.path.join(root, file)
+                    relative_file_path = os.path.relpath(local_file_path, local_dir).replace("\\", "/")
+                    remote_file_path = os.path.join(remote_dir, relative_file_path).replace("\\", "/")
+                    upload_file(local_file_path, remote_file_path)
+                    processed_files += 1
+                    progress_percentage = int((processed_files / total_files) * 100)
+                    self.progress.emit(progress_percentage)
+
+            
+            print("Directory uploaded successfully.")
+            return True
+
+        except Exception as e:
+            print(f"Failed to upload directory: {e}")
+            traceback.print_exc()
+            return False
+        finally:
+            if ftp:
+                try:
+                    ftp.quit()
+                    print("FTP connection closed.")
+                except Exception as e:
+                    print(f"Failed to close FTP connection: {e}")
+
+class PublishDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle('Publishing Project')
+        self.setFixedSize(300, 100)
+        
+        self.layout = QVBoxLayout()
+        self.label = QLabel("Uploading...")
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setRange(0, 100)
+        self.file_label = QLabel("Current file: None")
+        self.layout.addWidget(self.label)
+        self.layout.addWidget(self.progress_bar)
+        self.layout.addWidget(self.file_label)
+        self.setLayout(self.layout)
+
+    def update_progress(self, value):
+        self.progress_bar.setValue(value)
+        QApplication.processEvents()
+
+    
+
+    def upload_finished(self, success):
+        if success:
+            QMessageBox.information(self, "Success", "Project uploaded successfully.")
+        else:
+            QMessageBox.critical(self, "Error", "Failed to upload project.")
+        self.accept()
