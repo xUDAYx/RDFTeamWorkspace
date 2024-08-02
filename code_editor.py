@@ -775,7 +775,7 @@ class UploadThread(QThread):
         
         ftp = None
         try:
-            ftp = FTP(server, timeout=60)
+            ftp = FTP(server, timeout=160)
             ftp.login(user=username, passwd=password)
 
             def make_remote_dirs(remote_directory):
