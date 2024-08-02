@@ -366,7 +366,7 @@ class NewProjectWizard(QWizard):
             print(f"An error occurred while updating the mobile view: {e}")
             
     def reset_wizard(self):
-        self.sample_project_combo.setCurrentId(0)
+        self.sample_project_combo.setCurrentIndex(0)
         self.copy_project_name_input.clear()
         self.project_name_input.clear()
         self.mobile_view.setHtml("<html><body><p>No content available</p></body></html>")
@@ -448,7 +448,7 @@ class NewProjectWizard(QWizard):
             QMessageBox.information(self, "Success", "New project created successfully.")
             self.project_view.populate_tables(dest_dir)
             self.reset_wizard()
-            self.close()
+            self.done(0)
         except Exception as e:
             print(f"An error occurred while creating the new project: {e}")
             QMessageBox.critical(self, "Error", f"An error occurred while creating the new project: {e}")

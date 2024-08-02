@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout,QScrollArea, QTableWidget, QPushButton, QFileDialog, QTableWidgetItem, QHeaderView, QLineEdit, QHBoxLayout,QLabel,QMessageBox,QMenu,QInputDialog, QDialog, QComboBox
+from PyQt6.QtWidgets import QApplication,QWidget, QVBoxLayout,QScrollArea, QTableWidget, QPushButton, QFileDialog, QTableWidgetItem, QHeaderView, QLineEdit, QHBoxLayout,QLabel,QMessageBox,QMenu,QInputDialog, QDialog, QComboBox
 from PyQt6.QtCore import Qt, QDir, pyqtSignal, QUrl
 from PyQt6.QtGui import QMouseEvent,QAction
 
@@ -286,6 +286,9 @@ class ProjectView(QWidget):
         self.setWindowFlags(Qt.WindowType.Window)
         self.setWindowTitle("Project View")
 
+        self.copied_file_path = None  # Track the copied file path
+        self.context_menu_table = None  
+        # Store the table that requested the context menu
         # Create the main layout
         layout = QVBoxLayout()
         self.setLayout(layout)
@@ -370,14 +373,25 @@ class ProjectView(QWidget):
         self.unlinked_table.customContextMenuRequested.connect(self.show_context_menu)
         
         self.context_menu = QMenu(self)
+
         rename_action = QAction("Rename", self)
         rename_action.triggered.connect(self.rename_file)
         self.context_menu.addAction(rename_action)
+
+        copy_action = QAction("Copy", self)
+        copy_action.triggered.connect(self.copy_file)
+        self.context_menu.addAction(copy_action)
+
+        paste_action = QAction("Paste", self)
+        paste_action.triggered.connect(self.paste_file)
+        self.context_menu.addAction(paste_action)
 
     
     
     def show_context_menu(self, pos):
         table = self.sender()
+        self.context_menu_table = table  # Store the table requesting the context menu
+
         if table == self.table_view:
             item = self.table_view.itemAt(pos)
             column = self.table_view.currentColumn()
@@ -394,13 +408,20 @@ class ProjectView(QWidget):
             rename_action.triggered.connect(self.rename_file)
             self.context_menu.addAction(rename_action)
 
-            
+            copy_action = QAction("Copy", self)
+            copy_action.triggered.connect(self.copy_file)
+            self.context_menu.addAction(copy_action)
+
+            paste_action = QAction("Paste", self)
+            paste_action.triggered.connect(self.paste_file)
+            self.context_menu.addAction(paste_action)
+
 
             self.context_menu.exec(table.mapToGlobal(pos))
         elif item:
             # Right-click on table item
             self.context_menu.exec(table.mapToGlobal(pos))
-
+            
     def create_new_file(self):
         if not hasattr(self, 'folder_path') or not self.folder_path:
                 QMessageBox.warning(self, "Project Not Opened", "Open a project first to create a new file.")
@@ -470,6 +491,53 @@ class ProjectView(QWidget):
 
             except Exception as e:
                 QMessageBox.warning(self, "Error", f"Failed to create new file: {e}")
+
+    def copy_file(self):
+        table = self.context_menu_table  # Use the stored table reference
+        current_item = table.currentItem()
+    
+        if current_item:
+            current_file_name = current_item.text()
+            if table == self.table_view:
+                current_column = self.table_view.currentColumn()
+                folder_name = self.get_folder_name_from_column(current_column)
+                self.copied_file_path = os.path.join(self.path_line_edit.text(), folder_name, current_file_name)
+            elif table == self.unlinked_table:
+                current_column = self.unlinked_table.currentColumn()
+                folder_name = self.get_folder_name_from_column(current_column)
+                self.copied_file_path = os.path.join(self.path_line_edit.text(), folder_name, current_file_name)
+            else:
+                self.copied_file_path = os.path.join(self.path_line_edit.text(), current_file_name)
+        
+            if self.copied_file_path and os.path.exists(self.copied_file_path):
+                destination_path = QFileDialog.getExistingDirectory(self, "Select Destination Folder", self.path_line_edit.text())
+                if destination_path:
+                    try:
+                        shutil.copy(self.copied_file_path, destination_path)
+                        QMessageBox.information(self, "Success", f"File copied to {destination_path}")
+                        self.refresh_directory()  # Refresh the directory to show the new file
+                    except Exception as e:
+                        QMessageBox.critical(self, "Error", f"Failed to copy file: {e}")
+            else:
+                QMessageBox.critical(self, "Error", f"File does not exist: {self.copied_file_path}")
+    def paste_file(self):
+        clipboard = QApplication.clipboard()
+        mime_data = clipboard.mimeData()
+        if mime_data.hasUrls():
+            urls = mime_data.urls()
+            for url in urls:
+                source_path = url.toLocalFile()
+                if os.path.exists(source_path):
+                    destination_folder = QFileDialog.getExistingDirectory(self, "Select Destination Folder", self.path_line_edit.text())
+                    if destination_folder:
+                        try:
+                            shutil.copy(source_path, destination_folder)
+                            QMessageBox.information(self, "Success", f"File pasted to {destination_folder}")
+                            self.refresh_directory()  # Refresh the directory to show the new file
+                        except Exception as e:
+                            QMessageBox.critical(self, "Error", f"Failed to paste file: {e}")
+                else:
+                    QMessageBox.critical(self, "Error", "No file to paste or file does not exist")
 
     
     def get_folder_name_from_column(self, column):
@@ -641,111 +709,123 @@ class ProjectView(QWidget):
             return ""
 
     def populate_tables(self, folder_path):
-        # Clear both tables
-        self.table_view.setRowCount(0)
-        self.table_view.setColumnCount(5)
-        self.table_view.setHorizontalHeaderLabels(["RDF_UI", "RDF_ACTION", "RDF_BW", "RDF_BVO", "RDF_DATA"])
-        self.unlinked_table.setRowCount(0)
+        try:
+            print(f"Populating tables for folder: {folder_path}")
+            # Clear both tables
+            self.table_view.setRowCount(0)
+            self.table_view.setColumnCount(5)
+            self.table_view.setHorizontalHeaderLabels(["RDF_UI", "RDF_ACTION", "RDF_BW", "RDF_BVO", "RDF_DATA"])
+            self.unlinked_table.setRowCount(0)
 
-        # Get the linked files
-        ui_file_map = read_project_info(folder_path)
+            # Get the linked files
+            ui_file_map = read_project_info(folder_path)
+            print(f"UI file map: {ui_file_map}")
 
-        # Get all file names in the selected directory and its subdirectories
-        all_file_names = get_all_file_names(folder_path)
+            # Get all file names in the selected directory and its subdirectories
+            all_file_names = get_all_file_names(folder_path)
+            print(f"All file names: {all_file_names}")
 
-        # Create a set of all linked files
-        all_linked_files = set()
-        for files in ui_file_map.values():
-            all_linked_files.update(files)
-        all_linked_files.update(ui_file_map.keys())
+            # Create a set of all linked files
+            all_linked_files = set()
+            for files in ui_file_map.values():
+                all_linked_files.update(files)
+            all_linked_files.update(ui_file_map.keys())
 
-        # Create a list of unlinked files
-        unlinked_files = [filename for filename in all_file_names if filename not in all_linked_files and not (filename == "ProjectInfo.json" or filename == "RDFView.php")]
+            # Create a list of unlinked files
+            unlinked_files = [filename for filename in all_file_names if filename not in all_linked_files and not (filename == "ProjectInfo.json" or filename == "RDFView.php")]
+            print(f"Unlinked files: {unlinked_files}")
 
-        # Populate the table view with linked files
-        row = 0
-        for ui_file, related_files in ui_file_map.items():
-            if file_exists_in_folder(os.path.join(folder_path, "RDF_UI"), ui_file):
-                self.table_view.insertRow(row)
-                self.table_view.setItem(row, 0, QTableWidgetItem(ui_file))
+            # Populate the table view with linked files
+            row = 0
+            for ui_file, related_files in ui_file_map.items():
+                if file_exists_in_folder(os.path.join(folder_path, "RDF_UI"), ui_file):
+                    self.table_view.insertRow(row)
+                    self.table_view.setItem(row, 0, QTableWidgetItem(ui_file))
 
-                for file in related_files:
-                    if file.endswith(".js") and file_exists_in_folder(os.path.join(folder_path, "RDF_ACTION"), file):
-                        self.table_view.setItem(row, 1, QTableWidgetItem(file))
-                    elif file.endswith("BW.php") and file_exists_in_folder(os.path.join(folder_path, "RDF_BW"), file):
-                        self.table_view.setItem(row, 2, QTableWidgetItem(file))
-                    elif file.endswith("BVO.php") and file_exists_in_folder(os.path.join(folder_path, "RDF_BVO"), file):
-                        self.table_view.setItem(row, 3, QTableWidgetItem(file))
-                    elif file.endswith("Data.json") and file_exists_in_folder(os.path.join(folder_path, "RDF_DATA"), file):
-                        self.table_view.setItem(row, 4, QTableWidgetItem(file))
+                    for file in related_files:
+                        if file.endswith(".js") and file_exists_in_folder(os.path.join(folder_path, "RDF_ACTION"), file):
+                            self.table_view.setItem(row, 1, QTableWidgetItem(file))
+                        elif file.endswith("BW.php") and file_exists_in_folder(os.path.join(folder_path, "RDF_BW"), file):
+                            self.table_view.setItem(row, 2, QTableWidgetItem(file))
+                        elif file.endswith("BVO.php") and file_exists_in_folder(os.path.join(folder_path, "RDF_BVO"), file):
+                            self.table_view.setItem(row, 3, QTableWidgetItem(file))
+                        elif file.endswith("Data.json") and file_exists_in_folder(os.path.join(folder_path, "RDF_DATA"), file):
+                            self.table_view.setItem(row, 4, QTableWidgetItem(file))
 
-                row += 1
+                    row += 1
 
-        # Populate the unlinked files table
-        self.unlinked_table.setColumnCount(5)
-        self.unlinked_table.setHorizontalHeaderLabels(["RDF_UI", "RDF_ACTION", "RDF_BW", "RDF_BVO", "RDF_DATA"])
+            # Populate the unlinked files table
+            self.unlinked_table.setColumnCount(5)
+            self.unlinked_table.setHorizontalHeaderLabels(["RDF_UI", "RDF_ACTION", "RDF_BW", "RDF_BVO", "RDF_DATA"])
 
-        unlinked_ui_files = [file for file in unlinked_files if file.endswith("UI.php")]
-        unlinked_action_files = [file for file in unlinked_files if file.endswith(".js")]
-        unlinked_bw_files = [file for file in unlinked_files if file.endswith("BW.php")]
-        unlinked_bvo_files = [file for file in unlinked_files if file.endswith("BVO.php")]
-        unlinked_data_files = [file for file in unlinked_files if file.endswith("Data.json")]
+            unlinked_ui_files = [file for file in unlinked_files if file.endswith("UI.php")]
+            unlinked_action_files = [file for file in unlinked_files if file.endswith(".js")]
+            unlinked_bw_files = [file for file in unlinked_files if file.endswith("BW.php")]
+            unlinked_bvo_files = [file for file in unlinked_files if file.endswith("BVO.php")]
+            unlinked_data_files = [file for file in unlinked_files if file.endswith("Data.json")]
 
-        max_unlinked = max(len(unlinked_ui_files), len(unlinked_action_files), len(unlinked_bw_files), len(unlinked_bvo_files), len(unlinked_data_files))
-        self.unlinked_table.setRowCount(max_unlinked)
+            max_unlinked = max(len(unlinked_ui_files), len(unlinked_action_files), len(unlinked_bw_files), len(unlinked_bvo_files), len(unlinked_data_files))
+            self.unlinked_table.setRowCount(max_unlinked)
 
-        for row in range(max_unlinked):
-            if row < len(unlinked_ui_files):
-                self.unlinked_table.setItem(row, 0, QTableWidgetItem(unlinked_ui_files[row]))
-            if row < len(unlinked_action_files):
-                self.unlinked_table.setItem(row, 1, QTableWidgetItem(unlinked_action_files[row]))
-            if row < len(unlinked_bw_files):
-                self.unlinked_table.setItem(row, 2, QTableWidgetItem(unlinked_bw_files[row]))
-            if row < len(unlinked_bvo_files):
-                self.unlinked_table.setItem(row, 3, QTableWidgetItem(unlinked_bvo_files[row]))
-            if row < len(unlinked_data_files):
-                self.unlinked_table.setItem(row, 4, QTableWidgetItem(unlinked_data_files[row]))
+            for row in range(max_unlinked):
+                if row < len(unlinked_ui_files):
+                    self.unlinked_table.setItem(row, 0, QTableWidgetItem(unlinked_ui_files[row]))
+                if row < len(unlinked_action_files):
+                    self.unlinked_table.setItem(row, 1, QTableWidgetItem(unlinked_action_files[row]))
+                if row < len(unlinked_bw_files):
+                    self.unlinked_table.setItem(row, 2, QTableWidgetItem(unlinked_bw_files[row]))
+                if row < len(unlinked_bvo_files):
+                    self.unlinked_table.setItem(row, 3, QTableWidgetItem(unlinked_bvo_files[row]))
+                if row < len(unlinked_data_files):
+                    self.unlinked_table.setItem(row, 4, QTableWidgetItem(unlinked_data_files[row]))
 
-        # self.table_view.resizeColumnsToContents()
-        # self.unlinked_table.resizeColumnsToContents()
+            print("Table population complete")
+        except Exception as e :
+            print(f"error in populating tables {e}")
+    
+
+        
+
+
+     
     def rename_file(self):
-        table = self.sender().parent()
-        if table == self.table_view:
-            current_item = self.table_view.currentItem()
+        try:
+            table = self.context_menu_table  # Use the stored table reference
+            current_item = table.currentItem()
+        
             if current_item:
                 current_file_name = current_item.text()
                 new_file_name, ok = QInputDialog.getText(self, "Rename File", "Enter new file name:", text=current_file_name)
                 if ok and new_file_name != current_file_name:
-                    current_row = self.table_view.currentRow()
-                    current_column = self.table_view.currentColumn()
-                    folder_name = self.get_folder_name_from_column(current_column)
-                    old_file_path = os.path.join(self.folder_path, folder_name, current_file_name)
-                    new_file_path = os.path.join(self.folder_path, folder_name, new_file_name)
+                    if table == self.table_view:
+                        current_row = self.table_view.currentRow()
+                        current_column = self.table_view.currentColumn()
+                        folder_name = self.get_folder_name_from_column(current_column)
+                        old_file_path = os.path.join(self.path_line_edit.text(), folder_name, current_file_name)
+                        new_file_path = os.path.join(self.path_line_edit.text(), folder_name, new_file_name)
 
+                    elif table == self.unlinked_table:
+                        current_row = self.unlinked_table.currentRow()
+                        current_column = self.unlinked_table.currentColumn()
+                        folder_name = self.get_folder_name_from_column(current_column)
+                        old_file_path = os.path.join(self.path_line_edit.text(), folder_name, current_file_name)
+                        new_file_path = os.path.join(self.path_line_edit.text(), folder_name, new_file_name)
+
+                    else:
+                        old_file_path = os.path.join(self.path_line_edit.text(), current_file_name)
+                        new_file_path = os.path.join(self.path_line_edit.text(), new_file_name)
+                
                     try:
                         os.rename(old_file_path, new_file_path)
-                        self.table_view.setItem(current_row, current_column, QTableWidgetItem(new_file_name))
-                        self.refresh_directory()  # Refresh the directory after renaming the file
-                        self.update_linked_files(current_row, current_column, new_file_name)  # Update the linked files
-                    except Exception as e:
-                        QMessageBox.warning(self, "Error", f"Failed to rename file: {e}")
-        else:
-            item = self.unlinked_table.currentItem()
-            if item:
-                current_file_name = item.text()
-                new_file_name, ok = QInputDialog.getText(self, "Rename File", "Enter new file name:", text=current_file_name)
-                if ok and new_file_name != current_file_name:
-                    folder_name = self.get_folder_name_from_extension(current_file_name)
-                    old_file_path = os.path.join(self.folder_path, folder_name, current_file_name)
-                    new_file_path = os.path.join(self.folder_path, folder_name, new_file_name)
-
-                    try:
-                        os.rename(old_file_path, new_file_path)
-                        row = self.unlinked_table.currentRow()
-                        self.unlinked_table.setItem(row, 0, QTableWidgetItem(new_file_name))
+                        current_item.setText(new_file_name)
                         self.refresh_directory()  # Refresh the directory after renaming the file
                     except Exception as e:
                         QMessageBox.warning(self, "Error", f"Failed to rename file: {e}")
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Failed to rename file: {e}")
+            print(f"error in rename{e}")
+            
+    
 
     def initialize_validator(self, rules_path="rules"):
         try:

@@ -45,3 +45,4 @@ if __name__ == "__main__":
     except Exception as e:
         QMessageBox.warning(None, "Error", f"Error running application: {e}")
         cleanup()  # Ensure cleanup is called in case of an exception
+    
