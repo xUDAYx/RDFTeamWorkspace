@@ -5,6 +5,8 @@ import logging,chardet
 import traceback
 from ftplib import FTP,error_perm
 import time
+
+from pc_view import PCView
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 from PyQt6.QtGui import QSyntaxHighlighter
 from PyQt6.Qsci import QsciDocument
@@ -171,6 +173,8 @@ class CodeEditor(QMainWindow):
             self.project_view = ProjectView(self)
             self.project_view.file_double_clicked.connect(self.open_file_from_project_view)
 
+            self.pc_view_active = False  # Add this line to track PC view state
+            
             self.main_layout = QVBoxLayout()
             self.central_widget = QWidget()
             self.central_widget.setLayout(self.main_layout)
@@ -184,7 +188,7 @@ class CodeEditor(QMainWindow):
 
             # Create the toolbar
             self.toolbar = QToolBar("Main Toolbar")
-            
+
             # Create Project menu and actions
             project_menu = QMenu("Project", self)
             self.open_project_action = QAction("Open Project", self)
@@ -214,14 +218,17 @@ class CodeEditor(QMainWindow):
 
             # Create View menu and actions
             view_menu = QMenu("view",self)
-            
+
             self.project_view_action = QAction(QIcon("project_view.png"), "Reset View", self)
             self.project_view_action.triggered.connect(self.toggle_sidebar)
             self.dark_mode_action = QAction("Dark Mode", self)
             self.dark_mode_action.triggered.connect(self.toggle_dark_theme)
+            self.pc_view_action = QAction("PC View", self)
+            self.pc_view_action.triggered.connect(self.toggle_pc_view)
 
             view_menu.addAction(self.dark_mode_action)
             view_menu.addAction(self.project_view_action)
+            view_menu.addAction(self.pc_view_action)
 
             # Create a View button with the view menu
             view_button = QToolButton(self)
@@ -246,7 +253,7 @@ class CodeEditor(QMainWindow):
             self.validate_action.triggered.connect(self.validate_file)
             validation_menu.addAction(self.validate_action)
             validation_menu.addAction(self.validate_project_action)
-            
+
 
             validation_button = QToolButton(self)
             validation_button.setText("Validation") 
@@ -258,7 +265,7 @@ class CodeEditor(QMainWindow):
 
 
             # Add actions directly to the toolbar
-            
+
             self.toolbar.addAction(self.restart_application_button)
 
             # Add the toolbar to the main layout
@@ -270,9 +277,11 @@ class CodeEditor(QMainWindow):
             self.tab_widget.tabCloseRequested.connect(self.close_tab)
             self.tab_widget.currentChanged.connect(self.update_live_preview)
 
+            self.pc_view = PCView()
             self.mobile_view = MobileView()
             self.terminal = TerminalWidget()
             self.wizard = NewProjectWizard()
+            
 
             self.splitter = QSplitter(Qt.Orientation.Horizontal)
             self.splitter.addWidget(self.project_view)
@@ -282,8 +291,9 @@ class CodeEditor(QMainWindow):
             self.main_splitter = QSplitter(Qt.Orientation.Horizontal)
             self.main_splitter.addWidget(self.splitter)
             self.main_splitter.addWidget(self.mobile_view)
-            self.main_splitter.setSizes([1200, 300])  # Set initial sizes for the main splitter
-
+            self.main_splitter.addWidget(self.pc_view)
+            self.main_splitter.setSizes([1000, 300, 300])  # Set initial sizes for the main splitter
+            self.pc_view.hide()  # Hide the pc_view initially
             self.main_layout.addWidget(self.main_splitter)
 
             self.live_preview_timer = QTimer()
@@ -306,16 +316,39 @@ class CodeEditor(QMainWindow):
             }
             self.rule_engine = RuleEngine(self.tab_widget, self.rules, self.mobile_view)
 
-            
-
             self.dark_theme_enabled = False
 
             self.installEventFilter(self)
         except Exception as e:
             print(f"Error initializing CodeEditor: {e}")
             logging.error(f"Error initializing CodeEditor: {e}")
+            
+            
 
-
+    def toggle_pc_view(self):
+        if not self.pc_view_active:
+            # Activate PC view
+            self.pc_view.show()
+            self.mobile_view.hide()
+            
+            # Store current sizes
+            self.stored_sizes = self.main_splitter.sizes()
+            
+            # Set the width of code editor, terminal, and project view to 0
+            new_sizes = [0, 0, self.main_splitter.width()]
+            self.main_splitter.setSizes(new_sizes)
+            
+            self.pc_view_active = True
+        else:
+            # Deactivate PC view
+            self.pc_view.hide()
+            self.mobile_view.show()
+            
+            # Restore previous sizes
+            self.main_splitter.setSizes(self.stored_sizes)
+            
+            self.pc_view_active = False    
+            
     def toggle_sidebar(self):
         try:
             if self.project_view.isHidden():
@@ -348,6 +381,7 @@ class CodeEditor(QMainWindow):
             else:
                 self.close_all_tabs()
                 self.mobile_view.clear_view()
+                self.pc_view.clear_view()
                 self.project_view.select_workspace()
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error creating new project workspace: {e}")
@@ -382,6 +416,7 @@ class CodeEditor(QMainWindow):
                     if terminal:
                         terminal.write(f"Saved file: {current_widget.file_path}\n")
                     self.mobile_view.load_file_preview(current_widget.file_path)
+                    self.pc_view.load_file_preview(current_widget.file_path)
                 else:
                     terminal.write("No file opened to save.\n")
         except Exception as e:
@@ -403,6 +438,7 @@ class CodeEditor(QMainWindow):
             current_widget = self.tab_widget.currentWidget()
             if current_widget:
                 self.mobile_view.load_file_preview(current_widget.file_path)
+                self.pc_view.load_file_preview(current_widget.file_path)
         except Exception as e:
             print(f"Error updating live preview: {e}")
             logging.error(f"Error updating live preview: {e}")
@@ -551,8 +587,6 @@ class CodeEditor(QMainWindow):
         except Exception as e:
             QMessageBox.warning(self, 'Error', f'Failed to publish project: {e}')
     
-
-
 
     def get_language_from_extension(self, extension):
         extension_map = {

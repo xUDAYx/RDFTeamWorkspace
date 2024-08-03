@@ -215,9 +215,15 @@ class MobileView(QWidget):
         self.zoom_layout.addWidget(self.zoom_in_button)
         self.zoom_layout.addWidget(self.zoom_out_button)
         self.zoom_layout.addStretch(1)
-
         # Add the zoom buttons to the main layout
         self.layout.addLayout(self.zoom_layout)
+        
+        # Add toggle PC view button
+        self.toggle_pc_view_button = QPushButton("Toggle PC View")
+        self.toggle_pc_view_button.clicked.connect(self.toggle_pc_view)
+        self.layout.addWidget(self.toggle_pc_view_button)
+
+        
 
         self.tree_widget = QTreeWidget()
         self.tree_widget.setStyleSheet("border:none;")
@@ -243,45 +249,34 @@ class MobileView(QWidget):
         self.web_view.setZoomFactor(self.web_view.zoomFactor() - 0.1)
 
     def load_file_preview(self, file_path):
+        self.current_file_path = file_path
         try:
-            # Get the file extension
             file_extension = os.path.splitext(file_path)[1].lower()
 
             if file_extension == '.json':
                 self.show_json_in_tree_view(file_path)
             elif file_extension == '.php' and file_path.endswith('UI.php'):
-                # Get the file name without the extension
                 file_name = os.path.splitext(os.path.basename(file_path))[0]
-
-                # Get the project directory structure
                 project_path = os.path.dirname(file_path)
                 htdocs_index = project_path.lower().find('htdocs')
 
                 if htdocs_index == -1:
                     raise ValueError("Project is not located under htdocs directory")
 
-                # Extract the relative path up to the project folder
                 relative_path = project_path[htdocs_index + len('htdocs') + 1:]
                 relative_path_parts = relative_path.split(os.sep)
-
-                # Determine the project folder name (assuming it is the first folder in the relative path)
                 project_folder = relative_path_parts[0]
                 project_path_up_to_folder = os.path.join(project_folder)
 
-                # Construct the preview URL
-                port = self.port_input.text() or "80"  # Default to 80 if empty
+                port = self.port_input.text() or "80"
                 self.port_input.setPlaceholderText("80")
-                # Check if local or server is selected
                 is_local = self.local_radio.isChecked()
 
-                # Construct the preview URL
                 if is_local:
                     preview_url = f"http://localhost:{port}/{quote(project_path_up_to_folder.replace(os.sep, '/'))}/RDFView.php?ui={file_name}"
                 else:
-                    # Replace with your server URL structure
                     preview_url = f"https://takeitideas.in/software/RDFMicroProjects/reminderApp/RDFView.php?ui=reminderAppUI={file_name}"
 
-                # Load the URL in the web view
                 url = QUrl.fromUserInput(preview_url)
                 print(url)
                 self.web_view.load(url)
@@ -351,3 +346,11 @@ class MobileView(QWidget):
 
     def web_view_reload(self):
         self.web_view.reload()
+        
+    def toggle_pc_view(self):
+        parent = self.parent()
+        while parent:
+            if hasattr(parent, 'toggle_pc_view'):
+                parent.toggle_pc_view()
+                break
+            parent = parent.parent()
