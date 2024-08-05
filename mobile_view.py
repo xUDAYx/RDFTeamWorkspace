@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
     QPushButton, QApplication, QMessageBox, QInputDialog, QTreeWidget, QDialog, QTreeWidgetItem, QLineEdit, QRadioButton, QButtonGroup
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView  # type: ignore
-from PyQt6.QtCore import QUrl, Qt, QSize, QPoint
+from PyQt6.QtCore import QUrl, Qt, QSize, QPoint, QThread, pyqtSignal
 from PyQt6.QtGui import QIcon,QGuiApplication
 from urllib.parse import quote
 from PyQt6.QtWebEngineCore import QWebEnginePage  # type: ignore
@@ -398,6 +398,39 @@ class MobileView(QWidget):
                 parent.toggle_pc_view()
                 break
             parent = parent.parent()
+    
+
+    def open_in_browser(self):
+        url = self.url_display.text()
+        if url:
+            self.browser_opener = BrowserOpener(url)
+            self.browser_opener.finished.connect(self.handle_browser_opened)
+            self.browser_opener.start()
+        else:
+            QMessageBox.warning(None, "No URL", "No URL to open in the browser. Please preview a file first.")
+
+    def handle_browser_opened(self):
+        self.browser_opener.finished.disconnect(self.handle_browser_opened)
+        self.browser_opener = None
+
+class BrowserOpener(QThread):
+    finished = pyqtSignal()
+
+    def __init__(self, url, parent=None):
+        super().__init__(parent)
+        self.url = url
+
+    def run(self):
+        chrome_path = self.find_chrome()
+        if chrome_path:
+            try:
+                subprocess.run([chrome_path, self.url])
+            except Exception as e:
+                self.show_error_message(f"Could not open the URL in Chrome: {str(e)}")
+        else:
+            self.show_error_message("Could not find Chrome installation. Please ensure Chrome is installed.")
+        self.finished.emit()
+
     def find_chrome(self):
         # Define potential Chrome paths
         chrome_paths = [
@@ -415,16 +448,5 @@ class MobileView(QWidget):
                 return path
         return None
 
-    def open_in_browser(self):
-        url = self.url_display.text()
-        if url:
-            chrome_path = self.find_chrome()
-            if chrome_path:
-                try:
-                    subprocess.run([chrome_path, url])
-                except Exception as e:
-                    QMessageBox.warning(self, "Error", f"Could not open the URL in Chrome: {str(e)}")
-            else:
-                QMessageBox.warning(self, "Error", "Could not find Chrome installation. Please ensure Chrome is installed.")
-        else:
-            QMessageBox.warning(self, "No URL", "No URL to open in the browser. Please preview a file first.")
+    def show_error_message(self, message):
+        QMessageBox.warning(None, "Error", message)
