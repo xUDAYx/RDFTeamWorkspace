@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import webbrowser,subprocess
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFileDialog, QLabel, QSlider, 
     QPushButton, QApplication, QMessageBox, QInputDialog, QTreeWidget, QDialog, QTreeWidgetItem, QLineEdit, QRadioButton, QButtonGroup
@@ -150,6 +151,39 @@ class MobileView(QWidget):
 
         self.layout.addLayout(self.navigation_layout)
 
+        # Add previewed URL display
+        self.url_layout = QHBoxLayout()
+        self.url_label = QLabel("Previewed URL:")
+        self.url_label.setStyleSheet("font-weight:bold;")
+        self.url_display = QLineEdit()
+        self.url_display.setReadOnly(True)
+
+        self.open_in_browser_button = QPushButton("Open in browser")
+        self.open_in_browser_button.setStyleSheet("""
+                QPushButton {
+                    background-color: lightblue;
+                    font-weight: bold;
+                    border: 2px solid #5c5c5c;
+                    border-radius: 5px;
+                    padding: 5px 10px;
+                }
+                QPushButton:hover {
+                    background-color: #add8e6;  # lighter blue
+                    border: 2px solid #3c3c3c;
+                }
+                QPushButton:pressed {
+                    background-color: #87ceeb;  # even lighter blue
+                    border: 2px solid #1c1c1c;
+                }
+            """)
+        self.open_in_browser_button.clicked.connect(self.open_in_browser)
+
+
+        self.url_layout.addWidget(self.url_label)
+        self.url_layout.addWidget(self.url_display)
+        self.url_layout.addWidget(self.open_in_browser_button)
+        self.layout.addLayout(self.url_layout)
+
         # Create the mobile header
         self.mobile_header = QWidget()
         self.mobile_header.setFixedHeight(20)
@@ -211,17 +245,22 @@ class MobileView(QWidget):
         self.zoom_out_button.setStyleSheet("background-color: lightblue; font-weight: bold;")
         self.zoom_out_button.clicked.connect(self.zoom_out)
 
-        self.zoom_layout.addStretch(1)
+        self.toggle_pc_view_button = QPushButton("Toggle PC View")
+        self.toggle_pc_view_button.setMinimumHeight(20)
+        self.toggle_pc_view_button.setStyleSheet(" background-color: lightblue ; font-weight: bold;")
+        self.toggle_pc_view_button.clicked.connect(self.toggle_pc_view)
+
+       
         self.zoom_layout.addWidget(self.zoom_in_button)
         self.zoom_layout.addWidget(self.zoom_out_button)
+        self.zoom_layout.addWidget(self.toggle_pc_view_button)
         self.zoom_layout.addStretch(1)
         # Add the zoom buttons to the main layout
         self.layout.addLayout(self.zoom_layout)
         
         # Add toggle PC view button
-        self.toggle_pc_view_button = QPushButton("Toggle PC View")
-        self.toggle_pc_view_button.clicked.connect(self.toggle_pc_view)
-        self.layout.addWidget(self.toggle_pc_view_button)
+        
+        
 
         
 
@@ -233,6 +272,8 @@ class MobileView(QWidget):
         self.set_border_color(None)
 
         self.web_view.page().profile().downloadRequested.connect(self.handle_download)
+
+        
 
     def set_border_color(self, color):
         if color:
@@ -247,6 +288,8 @@ class MobileView(QWidget):
     def zoom_out(self):
         # Set zoom level in percentage (100% is default)
         self.web_view.setZoomFactor(self.web_view.zoomFactor() - 0.1)
+
+    
 
     def load_file_preview(self, file_path):
         self.current_file_path = file_path
@@ -278,6 +321,7 @@ class MobileView(QWidget):
                     preview_url = f"https://takeitideas.in/software/RDFMicroProjects/reminderApp/RDFView.php?ui=reminderAppUI={file_name}"
 
                 url = QUrl.fromUserInput(preview_url)
+                self.url_display.setText(preview_url)  
                 print(url)
                 self.web_view.load(url)
                 self.tree_widget.clear()
@@ -354,3 +398,33 @@ class MobileView(QWidget):
                 parent.toggle_pc_view()
                 break
             parent = parent.parent()
+    def find_chrome(self):
+        # Define potential Chrome paths
+        chrome_paths = [
+            "C:/Program Files/Google/Chrome/Application/chrome.exe",
+            "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
+            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+            "/usr/bin/google-chrome",
+            "/usr/local/bin/google-chrome",
+            "/usr/bin/chromium-browser",
+            "/usr/local/bin/chromium-browser",
+        ]
+
+        for path in chrome_paths:
+            if os.path.exists(path):
+                return path
+        return None
+
+    def open_in_browser(self):
+        url = self.url_display.text()
+        if url:
+            chrome_path = self.find_chrome()
+            if chrome_path:
+                try:
+                    subprocess.run([chrome_path, url])
+                except Exception as e:
+                    QMessageBox.warning(self, "Error", f"Could not open the URL in Chrome: {str(e)}")
+            else:
+                QMessageBox.warning(self, "Error", "Could not find Chrome installation. Please ensure Chrome is installed.")
+        else:
+            QMessageBox.warning(self, "No URL", "No URL to open in the browser. Please preview a file first.")
