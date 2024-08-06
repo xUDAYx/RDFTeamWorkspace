@@ -169,8 +169,12 @@ class CodeEditor(QMainWindow):
             self.showMaximized()
             self.setWindowFlags(Qt.WindowType.Window)
             self.setGeometry(100, 100, 800, 600)
-
+            self.pc_view = PCView()
+            self.mobile_view = MobileView()
+            self.terminal = TerminalWidget()
+            self.wizard = NewProjectWizard()
             self.project_view = ProjectView(self)
+            self.wizard.project_created.connect(self.project_view.update_project_view)
             self.project_view.file_double_clicked.connect(self.open_file_from_project_view)
 
             self.pc_view_active = False  # Add this line to track PC view state
@@ -277,10 +281,8 @@ class CodeEditor(QMainWindow):
             self.tab_widget.tabCloseRequested.connect(self.close_tab)
             self.tab_widget.currentChanged.connect(self.update_live_preview)
 
-            self.pc_view = PCView()
-            self.mobile_view = MobileView()
-            self.terminal = TerminalWidget()
-            self.wizard = NewProjectWizard()
+            
+            
             
 
             self.splitter = QSplitter(Qt.Orientation.Horizontal)

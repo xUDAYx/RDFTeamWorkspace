@@ -421,6 +421,7 @@ class ProjectView(QWidget):
         elif item:
             # Right-click on table item
             self.context_menu.exec(table.mapToGlobal(pos))
+
             
     def create_new_file(self):
         if not hasattr(self, 'folder_path') or not self.folder_path:
@@ -568,7 +569,7 @@ class ProjectView(QWidget):
 
         if folder_path:
             self.path_line_edit.setText(folder_path)
-            self.folder_path = folder_path  # Store the folder path
+            self.folder_path = folder_path
             self.populate_tables(folder_path)
             global CURRENT_PROJECT_PATH
             config.CURRENT_PROJECT_PATH = folder_path
@@ -638,7 +639,18 @@ class ProjectView(QWidget):
         except Exception as e:
             print(f"Error merging project: {e}")
             return False
-
+        
+    def update_project_view(self, project_dir):
+        try:
+            print(f"Updating project view with: {project_dir}")  # Debug statement
+            if project_dir:  # Ensure the project_dir is not empty
+                self.folder_path = project_dir
+                self.populate_tables(project_dir)
+                global CURRENT_PROJECT_PATH
+                CURRENT_PROJECT_PATH = project_dir  # Update the global variable
+                config.CURRENT_PROJECT_PATH = project_dir
+        except Exception as e:
+            print(f"Error in update_project_view: {e}")
     
     def project_created_handler(self, folder_path):
         try:
@@ -654,45 +666,48 @@ class ProjectView(QWidget):
             self.populate_tables(folder_path)
 
     def cell_double_clicked(self, row, column):
-        table = self.sender()  # Get the table that triggered the event
+        try:
+            table = self.sender()  # Get the table that triggered the event
 
-        if table == self.table_view:
-            if row == 0:
-                folder_name_item = self.table_view.horizontalHeaderItem(column)
-                file_name_item = self.table_view.item(row, column)
-                if folder_name_item and file_name_item:
-                    folder_name = folder_name_item.text()
-                    file_name = file_name_item.text()
-                    if file_name:
-                        file_path = os.path.join(self.folder_path, folder_name, file_name)
-                        if os.path.exists(file_path):
-                            self.file_double_clicked.emit(file_path)
-            else:
-                column_map = {0: 'RDF_UI', 1: 'RDF_ACTION', 2: 'RDF_BW', 3: 'RDF_BVO', 4: 'RDF_DATA'}
-                folder_name = column_map.get(column)
-                if folder_name:
-                    file_name = self.table_view.item(row, column).text()
-                    if file_name:
-                        file_path = os.path.join(self.folder_path, folder_name, file_name)
-                        if os.path.exists(file_path):
-                            self.file_double_clicked.emit(file_path)
-
-        elif table == self.unlinked_table:
-            if self.unlinked_table.currentItem():
-                file_name = self.unlinked_table.currentItem().text()
-                folder_name = self.get_folder_name_from_extension(file_name)
-                if folder_name:
-                    file_path = os.path.join(self.folder_path, folder_name, file_name)
-                    if os.path.exists(file_path):
-                        self.file_double_clicked.emit(file_path)
-                    else:
-                        print(f"Unlinked file not found: {file_path}")
+            if table == self.table_view:
+                if row == 0:
+                    folder_name_item = self.table_view.horizontalHeaderItem(column)
+                    file_name_item = self.table_view.item(row, column)
+                    if folder_name_item and file_name_item:
+                        folder_name = folder_name_item.text()
+                        file_name = file_name_item.text()
+                        if file_name:
+                            file_path = os.path.join(self.folder_path, folder_name, file_name)
+                            if os.path.exists(file_path):
+                                self.file_double_clicked.emit(file_path)
                 else:
-                    print(f"Unable to determine folder for unlinked file: {file_name}")
+                    column_map = {0: 'RDF_UI', 1: 'RDF_ACTION', 2: 'RDF_BW', 3: 'RDF_BVO', 4: 'RDF_DATA'}
+                    folder_name = column_map.get(column)
+                    if folder_name:
+                        file_name = self.table_view.item(row, column).text()
+                        if file_name:
+                            file_path = os.path.join(self.folder_path, folder_name, file_name)
+                            if os.path.exists(file_path):
+                                self.file_double_clicked.emit(file_path)
 
-        # Prevent editing the cell on double-click
-        self.table_view.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.unlinked_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+            elif table == self.unlinked_table:
+                if self.unlinked_table.currentItem():
+                    file_name = self.unlinked_table.currentItem().text()
+                    folder_name = self.get_folder_name_from_extension(file_name)
+                    if folder_name:
+                        file_path = os.path.join(self.folder_path, folder_name, file_name)
+                        if os.path.exists(file_path):
+                            self.file_double_clicked.emit(file_path)
+                        else:
+                            print(f"Unlinked file not found: {file_path}")
+                    else:
+                        print(f"Unable to determine folder for unlinked file: {file_name}")
+
+            # Prevent editing the cell on double-click
+            self.table_view.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+            self.unlinked_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        except Exception as e:
+            print(f'error opening file{e}')
 
     def get_folder_name_from_extension(self, file_name):
         if file_name.endswith("UI.php"):
@@ -709,32 +724,52 @@ class ProjectView(QWidget):
             return ""
 
     def populate_tables(self, folder_path):
+        if folder_path is None:
+            print("populate_tables was called with a None value.")
+            return 
+        self.path_line_edit.setText(folder_path)
+        print(f"Populating tables for path: {folder_path}")
         try:
-            print(f"Populating tables for folder: {folder_path}")
             # Clear both tables
             self.table_view.setRowCount(0)
             self.table_view.setColumnCount(5)
             self.table_view.setHorizontalHeaderLabels(["RDF_UI", "RDF_ACTION", "RDF_BW", "RDF_BVO", "RDF_DATA"])
             self.unlinked_table.setRowCount(0)
+        except Exception as e:
+            print(f"Error clearing tables: {e}")
 
+        try:
             # Get the linked files
             ui_file_map = read_project_info(folder_path)
-            print(f"UI file map: {ui_file_map}")
+        except Exception as e:
+            print(f"Error reading project info: {e}")
+            ui_file_map = {}
 
+        try:
             # Get all file names in the selected directory and its subdirectories
             all_file_names = get_all_file_names(folder_path)
-            print(f"All file names: {all_file_names}")
+        except Exception as e:
+            print(f"Error getting all file names: {e}")
+            all_file_names = []
 
+        try:
             # Create a set of all linked files
             all_linked_files = set()
             for files in ui_file_map.values():
                 all_linked_files.update(files)
             all_linked_files.update(ui_file_map.keys())
+        except Exception as e:
+            print(f"Error creating set of all linked files: {e}")
+            all_linked_files = set()
 
+        try:
             # Create a list of unlinked files
             unlinked_files = [filename for filename in all_file_names if filename not in all_linked_files and not (filename == "ProjectInfo.json" or filename == "RDFView.php")]
-            print(f"Unlinked files: {unlinked_files}")
+        except Exception as e:
+            print(f"Error creating list of unlinked files: {e}")
+            unlinked_files = []
 
+        try:
             # Populate the table view with linked files
             row = 0
             for ui_file, related_files in ui_file_map.items():
@@ -743,17 +778,23 @@ class ProjectView(QWidget):
                     self.table_view.setItem(row, 0, QTableWidgetItem(ui_file))
 
                     for file in related_files:
-                        if file.endswith(".js") and file_exists_in_folder(os.path.join(folder_path, "RDF_ACTION"), file):
-                            self.table_view.setItem(row, 1, QTableWidgetItem(file))
-                        elif file.endswith("BW.php") and file_exists_in_folder(os.path.join(folder_path, "RDF_BW"), file):
-                            self.table_view.setItem(row, 2, QTableWidgetItem(file))
-                        elif file.endswith("BVO.php") and file_exists_in_folder(os.path.join(folder_path, "RDF_BVO"), file):
-                            self.table_view.setItem(row, 3, QTableWidgetItem(file))
-                        elif file.endswith("Data.json") and file_exists_in_folder(os.path.join(folder_path, "RDF_DATA"), file):
-                            self.table_view.setItem(row, 4, QTableWidgetItem(file))
+                        try:
+                            if file.endswith(".js") and file_exists_in_folder(os.path.join(folder_path, "RDF_ACTION"), file):
+                                self.table_view.setItem(row, 1, QTableWidgetItem(file))
+                            elif file.endswith("BW.php") and file_exists_in_folder(os.path.join(folder_path, "RDF_BW"), file):
+                                self.table_view.setItem(row, 2, QTableWidgetItem(file))
+                            elif file.endswith("BVO.php") and file_exists_in_folder(os.path.join(folder_path, "RDF_BVO"), file):
+                                self.table_view.setItem(row, 3, QTableWidgetItem(file))
+                            elif file.endswith("Data.json") and file_exists_in_folder(os.path.join(folder_path, "RDF_DATA"), file):
+                                self.table_view.setItem(row, 4, QTableWidgetItem(file))
+                        except Exception as e:
+                            print(f"Error populating table view with linked file '{file}': {e}")
 
                     row += 1
+        except Exception as e:
+            print(f"Error populating table view with linked files: {e}")
 
+        try:
             # Populate the unlinked files table
             self.unlinked_table.setColumnCount(5)
             self.unlinked_table.setHorizontalHeaderLabels(["RDF_UI", "RDF_ACTION", "RDF_BW", "RDF_BVO", "RDF_DATA"])
@@ -768,20 +809,24 @@ class ProjectView(QWidget):
             self.unlinked_table.setRowCount(max_unlinked)
 
             for row in range(max_unlinked):
-                if row < len(unlinked_ui_files):
-                    self.unlinked_table.setItem(row, 0, QTableWidgetItem(unlinked_ui_files[row]))
-                if row < len(unlinked_action_files):
-                    self.unlinked_table.setItem(row, 1, QTableWidgetItem(unlinked_action_files[row]))
-                if row < len(unlinked_bw_files):
-                    self.unlinked_table.setItem(row, 2, QTableWidgetItem(unlinked_bw_files[row]))
-                if row < len(unlinked_bvo_files):
-                    self.unlinked_table.setItem(row, 3, QTableWidgetItem(unlinked_bvo_files[row]))
-                if row < len(unlinked_data_files):
-                    self.unlinked_table.setItem(row, 4, QTableWidgetItem(unlinked_data_files[row]))
+                try:
+                    if row < len(unlinked_ui_files):
+                        self.unlinked_table.setItem(row, 0, QTableWidgetItem(unlinked_ui_files[row]))
+                    if row < len(unlinked_action_files):
+                        self.unlinked_table.setItem(row, 1, QTableWidgetItem(unlinked_action_files[row]))
+                    if row < len(unlinked_bw_files):
+                        self.unlinked_table.setItem(row, 2, QTableWidgetItem(unlinked_bw_files[row]))
+                    if row < len(unlinked_bvo_files):
+                        self.unlinked_table.setItem(row, 3, QTableWidgetItem(unlinked_bvo_files[row]))
+                    if row < len(unlinked_data_files):
+                        self.unlinked_table.setItem(row, 4, QTableWidgetItem(unlinked_data_files[row]))
+                except Exception as e:
+                    print(f"Error populating unlinked files table at row {row}: {e}")
+        except Exception as e:
+            print(f"Error populating unlinked files table: {e}")
 
-            print("Table population complete")
-        except Exception as e :
-            print(f"error in populating tables {e}")
+
+
     
 
         

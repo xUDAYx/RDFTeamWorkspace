@@ -394,8 +394,9 @@ class NewProjectWizard(QWizard):
                 return
 
             shutil.copytree(sample_project_dir, new_project_dir)
-            self.project_created.emit(new_project_name)
+            self.project_created.emit(new_project_dir)
             QMessageBox.information(self, "Success", "Project copied successfully!")
+            self.reset_wizard()
             self.accept()
 
         except Exception as e:
@@ -446,7 +447,6 @@ class NewProjectWizard(QWizard):
 
             self.project_created.emit(dest_dir)
             QMessageBox.information(self, "Success", "New project created successfully.")
-            self.project_view.populate_tables(dest_dir)
             self.reset_wizard()
             self.done(0)
         except Exception as e:
