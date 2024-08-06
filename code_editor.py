@@ -24,6 +24,7 @@ from PyQt6.Qsci import QsciAbstractAPIs, QsciScintilla, QsciDocument,QsciLexerJS
 from autocompleter import AutoCompleter
 from Rule_Engine import RuleEngine
 from code_formatter import CodeFormatter
+from OpenProject import OpenProjectWizard
 
 
 class MultiLanguageHighlighter(QsciAbstractAPIs):
@@ -173,7 +174,9 @@ class CodeEditor(QMainWindow):
             self.mobile_view = MobileView()
             self.terminal = TerminalWidget()
             self.wizard = NewProjectWizard()
+            self.open_project_wizard = OpenProjectWizard()
             self.project_view = ProjectView(self)
+            self.open_project_wizard.project_opened.connect(self.project_view.update_project_view)
             self.wizard.project_created.connect(self.project_view.update_project_view)
             self.project_view.file_double_clicked.connect(self.open_file_from_project_view)
 
@@ -197,7 +200,7 @@ class CodeEditor(QMainWindow):
             project_menu = QMenu("Project", self)
             self.open_project_action = QAction("Open Project", self)
             self.open_project_action.setShortcut(QKeySequence("Ctrl+O"))
-            self.open_project_action.triggered.connect(self.new_project_workspace)
+            self.open_project_action.triggered.connect(self.open_project)
             self.new_project_action = QAction("Create Project", self)
             self.new_project_action.triggered.connect(self.new_project)
             self.create_file_action = QAction('Create File ', self)
@@ -388,6 +391,13 @@ class CodeEditor(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error creating new project workspace: {e}")
             logging.error(f"Error creating new project workspace: {e}")
+
+    def open_project(self):
+        try:
+            self.open_project_wizard.exec()
+        except Exception as e:
+            print(f'error opening a wizard{e}')
+    
 
     def new_project(self):
         try:
