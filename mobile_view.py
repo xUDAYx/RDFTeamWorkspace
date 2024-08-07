@@ -2,13 +2,16 @@ import os
 import json
 import logging
 import webbrowser,subprocess
+from PIL import Image
+import qrcode
+from io import BytesIO
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QFileDialog, QLabel, QSlider, 
+    QWidget, QVBoxLayout, QHBoxLayout, QFileDialog, QLabel, QSlider, QDialogButtonBox,
     QPushButton, QApplication, QMessageBox, QInputDialog, QTreeWidget, QDialog, QTreeWidgetItem, QLineEdit, QRadioButton, QButtonGroup
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView  # type: ignore
 from PyQt6.QtCore import QUrl, Qt, QSize, QPoint, QThread, pyqtSignal
-from PyQt6.QtGui import QIcon,QGuiApplication
+from PyQt6.QtGui import QIcon,QGuiApplication,QPixmap, QImage
 from urllib.parse import quote
 from PyQt6.QtWebEngineCore import QWebEnginePage  # type: ignore
 
@@ -144,10 +147,76 @@ class MobileView(QWidget):
         self.reload_button.setToolTip("Reload")
         self.reload_button.clicked.connect(self.web_view_reload)
 
+        self.bookmark_button = QPushButton("Bookmarks")
+        self.bookmark_button.setStyleSheet("""
+                QPushButton {
+                    background-color: lightblue;
+                    font-weight: bold;
+                    border: 2px solid #5c5c5c;
+                    border-radius: 5px;
+                    padding: 5px 10px;
+                }
+                QPushButton:hover {
+                    background-color: #add8e6;  # lighter blue
+                    border: 2px solid #3c3c3c;
+                }
+                QPushButton:pressed {
+                    background-color: #87ceeb;  # even lighter blue
+                    border: 2px solid #1c1c1c;
+                }
+            """)
+        
+        self.QR_button = QPushButton("QR Code")
+        self.QR_button.setStyleSheet("""
+                QPushButton {
+                    background-color: lightblue;
+                    font-weight: bold;
+                    border: 2px solid #5c5c5c;
+                    border-radius: 5px;
+                    padding: 5px 10px;
+                    margin-left:2px;
+                }
+                QPushButton:hover {
+                    background-color: #add8e6;  # lighter blue
+                    border: 2px solid #3c3c3c;
+                }
+                QPushButton:pressed {
+                    background-color: #87ceeb;  # even lighter blue
+                    border: 2px solid #1c1c1c;
+                }
+            """)
+        self.QR_button.clicked.connect(self.show_qr_code)
+        
+        self.copy_url_button = QPushButton("Copy URL")
+        self.copy_url_button.setStyleSheet("""
+                QPushButton {
+                    background-color: lightblue;
+                    font-weight: bold;
+                    border: 2px solid #5c5c5c;
+                    border-radius: 5px;
+                    padding: 5px 10px;
+                    margin-left:2px;
+                }
+                QPushButton:hover {
+                    background-color: #add8e6;  # lighter blue
+                    border: 2px solid #3c3c3c;
+                }
+                QPushButton:pressed {
+                    background-color: #87ceeb;  # even lighter blue
+                    border: 2px solid #1c1c1c;
+                }
+            """)
+        self.copy_url_button.clicked.connect(self.copy_url_to_clipboard)
+
         self.navigation_layout.addWidget(self.back_button)
         self.navigation_layout.addWidget(self.forward_button)
         self.navigation_layout.addWidget(self.reload_button)
-        self.navigation_layout.addStretch(1)  # Add stretchable space to align buttons to the left
+        self.navigation_layout.addWidget(self.bookmark_button)
+        self.navigation_layout.addWidget(self.QR_button)
+        self.navigation_layout.addWidget(self.copy_url_button)
+        self.navigation_layout.addStretch(1)  
+        
+        # Add stretchable space to align buttons to the left
 
         self.layout.addLayout(self.navigation_layout)
 
@@ -156,6 +225,7 @@ class MobileView(QWidget):
         self.url_label = QLabel("Previewed URL:")
         self.url_label.setStyleSheet("font-weight:bold;")
         self.url_display = QLineEdit()
+        self.url_display.setFixedHeight(40)
         self.url_display.setReadOnly(True)
 
         self.open_in_browser_button = QPushButton("Open in browser")
@@ -398,7 +468,77 @@ class MobileView(QWidget):
                 parent.toggle_pc_view()
                 break
             parent = parent.parent()
-    
+
+    def clear_url_display(self):
+        self.url_display.clear()
+
+    def show_qr_code(self):
+        try:
+            # Get the URL from the QLineEdit
+            url = self.url_display.text()
+            
+            if not url:
+                QMessageBox.warning(self, "No URL", "No URL available to generate QR code.")
+                return
+            
+            # Generate the QR code
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                box_size=10,
+                border=4,
+            )
+            qr.add_data(url)
+            qr.make(fit=True)
+            
+            img = qr.make_image(fill_color="black", back_color="white")
+            
+            # Convert the PIL image to a QPixmap
+            buffer = BytesIO()
+            img.save(buffer, format="PNG")
+            qimage = QImage()
+            qimage.loadFromData(buffer.getvalue())
+            pixmap = QPixmap(qimage)
+            
+            # Display the QR code in a dialog
+            dialog = QDialog(self)
+            dialog.setWindowTitle("QR Code")
+            layout = QVBoxLayout(dialog)
+            label = QLabel(dialog)
+            label.setPixmap(pixmap)
+            layout.addWidget(label)
+
+            url_label = QLabel(f"QR code for URL: {url}", dialog)
+            url_label.setWordWrap(True)
+            layout.addWidget(url_label)
+                
+            # Add OK button to close the dialog
+            button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
+            button_box.accepted.connect(dialog.accept)
+            layout.addWidget(button_box)
+            
+            dialog.exec()
+        except Exception as e:
+            QMessageBox.Warning(self,"error",f"error generating QR code {e}")
+        
+
+    def copy_url_to_clipboard(self):
+        try:
+            # Get the URL from the QLineEdit
+            url = self.url_display.text()
+
+            if not url:
+                QMessageBox.warning(self, "No URL", "No URL available to copy.")
+                return
+
+            # Access the clipboard and set the text
+            clipboard = QGuiApplication.clipboard()
+            clipboard.setText(url)
+
+            # Notify the user
+            QMessageBox.information(self, "URL Copied", "URL has been copied to the clipboard.")
+        except Exception as e:
+            QMessageBox.Warning(self,"copy error",f"error in copy url{e}")
 
     def open_in_browser(self):
         url = self.url_display.text()

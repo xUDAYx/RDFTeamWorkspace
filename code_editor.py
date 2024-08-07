@@ -394,7 +394,14 @@ class CodeEditor(QMainWindow):
 
     def open_project(self):
         try:
-            self.open_project_wizard.exec()
+            if self.tab_widget.count() == 0:
+                self.open_project_wizard.exec()
+            else:
+                self.close_all_tabs()
+                self.mobile_view.clear_view()
+                self.pc_view.clear_view()
+                self.mobile_view.clear_url_display()
+                self.open_project_wizard.exec()
         except Exception as e:
             print(f'error opening a wizard{e}')
     
