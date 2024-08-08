@@ -115,6 +115,9 @@ class MobileView(QWidget):
         self.button_group.addButton(self.server_radio)
         self.local_radio.setChecked(True)
 
+        self.local_radio.toggled.connect(self.reload_preview)
+        self.server_radio.toggled.connect(self.reload_preview)
+
         port_radio_layout.addStretch()
         port_radio_layout.addWidget(self.local_radio)
         port_radio_layout.addWidget(self.server_radio)
@@ -359,7 +362,9 @@ class MobileView(QWidget):
         # Set zoom level in percentage (100% is default)
         self.web_view.setZoomFactor(self.web_view.zoomFactor() - 0.1)
 
-    
+    def reload_preview(self):
+        if self.current_file_path:
+            self.load_file_preview(self.current_file_path)
 
     def load_file_preview(self, file_path):
         self.current_file_path = file_path
@@ -369,26 +374,27 @@ class MobileView(QWidget):
             if file_extension == '.json':
                 self.show_json_in_tree_view(file_path)
             elif file_extension == '.php' and file_path.endswith('UI.php'):
-                file_name = os.path.splitext(os.path.basename(file_path))[0]
                 project_path = os.path.dirname(file_path)
                 htdocs_index = project_path.lower().find('htdocs')
 
                 if htdocs_index == -1:
                     raise ValueError("Project is not located under htdocs directory")
 
-                relative_path = project_path[htdocs_index + len('htdocs') + 1:]
-                relative_path_parts = relative_path.split(os.sep)
-                project_folder = relative_path_parts[1]
-                project_path_up_to_folder = os.path.join(project_folder)
+                # Get the relative path after 'htdocs/RDFProjects_ROOT'
+                relative_path = project_path[htdocs_index + len('htdocs/RDFProjects_ROOT') + 1:]
+                # Get only the first folder after RDFProjects_ROOT (the immediate project folder)
+                project_folder = relative_path.split(os.sep)[0]
+
+                file_name = os.path.splitext(os.path.basename(file_path))[0]
 
                 port = self.port_input.text() or "80"
                 self.port_input.setPlaceholderText("80")
                 is_local = self.local_radio.isChecked()
 
                 if is_local:
-                    preview_url = f"http://localhost:{port}/RDFProject_ROOT/{project_folder}/RDFView.php?ui={file_name}"
+                    preview_url = f"http://localhost:{port}/RDFProjects_ROOT/{project_folder}/RDFView.php?ui={file_name}"
                 else:
-                    preview_url = f"https://takeitideas.in/software/RDFMicroProjects/reminderApp/RDFView.php?ui=reminderAppUI={file_name}"
+                    preview_url = f"https://takeitideas.in/RDFProjects_ROOT/{project_folder}/RDFView.php?ui={file_name}"
 
                 url = QUrl.fromUserInput(preview_url)
                 self.url_display.setText(preview_url)  
@@ -400,6 +406,8 @@ class MobileView(QWidget):
         except Exception as e:
             print(f"Failed to load preview: {e}")
             self.web_view.setHtml("<html><body><h1>Failed to load preview</h1></body></html>")
+
+
 
     def show_json_in_tree_view(self, file_path):
         try:
