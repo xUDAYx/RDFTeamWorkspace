@@ -25,6 +25,7 @@ from autocompleter import AutoCompleter
 from Rule_Engine import RuleEngine
 from code_formatter import CodeFormatter
 from OpenProject import OpenProjectWizard
+from ref_view import ReferenceView
 
 
 class MultiLanguageHighlighter(QsciAbstractAPIs):
@@ -327,10 +328,6 @@ class CodeEditor(QMainWindow):
             self.tab_widget.tabCloseRequested.connect(self.close_tab)
             self.tab_widget.currentChanged.connect(self.update_live_preview)
 
-            
-            
-            
-
             self.splitter = QSplitter(Qt.Orientation.Horizontal)
             self.splitter.addWidget(self.project_view)
             self.splitter.addWidget(self.tab_widget)
@@ -372,7 +369,13 @@ class CodeEditor(QMainWindow):
             logging.error(f"Error initializing CodeEditor: {e}")
             
             
-
+    
+    def toggle_ref_view(self, checked):
+        if checked:
+            self.ref_view.toggle_stay_on_top(True)
+        else:
+            self.ref_view.toggle_stay_on_top(False)
+            self.ref_view.hide()   
     def toggle_pc_view(self):
         if not self.pc_view_active:
             # Activate PC view
@@ -550,6 +553,15 @@ class CodeEditor(QMainWindow):
             format_button = QPushButton("Format Code")
             format_button.clicked.connect(lambda: self.format_current_code(editor, file_path))
             format_button.setStyleSheet("background-color:#f0f0f0;border-radius:5px;padding:4px 10px;border:1px solid #ccc")
+            
+            # Create an instance of ReferenceView
+            self.ref_view = ReferenceView()
+
+            # Add a button to the toolbar to show/hide the reference view
+            self.ref_view_action = QAction(QIcon("ref_view.png"), "Reference View", self)
+            self.ref_view_action.setCheckable(True)
+            self.ref_view_action.toggled.connect(self.toggle_ref_view)
+            self.toolbar.addAction(self.ref_view_action)
 
             search_tab_layout = QHBoxLayout()
             search_tab_layout.addStretch()
