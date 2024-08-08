@@ -44,8 +44,8 @@ class PCView(QWidget):
         self.button_group.addButton(self.server_radio)
         self.local_radio.setChecked(True)
 
-        self.local_radio.toggled.connect(self.reload_preview)
-        self.server_radio.toggled.connect(self.reload_preview)
+        # self.local_radio.toggled.connect(self.reload_preview)
+        # self.server_radio.toggled.connect(self.reload_preview)
 
         port_layout = QHBoxLayout()
         port_layout.addWidget(QLabel("Port:"))
