@@ -209,14 +209,14 @@ class MobileView(QWidget):
             self.url_label = QLabel("Previewed URL:")
             self.url_label.setStyleSheet("color: #333;")
             self.url_display = QLineEdit()
-            self.url_display.setFixedHeight(30)
+            self.url_display.setFixedHeight(25)
             self.url_display.setReadOnly(True)
             self.url_display.setStyleSheet("""
                 QLineEdit {
                     background-color: #f5f5f5;
                     border: 1px solid #ddd;
                     border-radius: 4px;
-                    padding: 4px 8px;
+                    padding: 4px 5px;
                     font-size: 14px;
                 }
             """)
@@ -290,7 +290,7 @@ class MobileView(QWidget):
             self.zoom_in_button = QPushButton("+")
             self.zoom_in_button.setMinimumHeight(20)
             self.zoom_in_button.setFixedWidth(40)
-            self.zoom_in_button.setStyleSheet("background-color: lightblue; ")
+            self.zoom_in_button.setStyleSheet("background-color: #2196f3; color: white; border: none; border-radius: 5px; padding: 5px; font-weight: bold;")
             self.zoom_in_button.setToolTip("Zoom In")
             self.zoom_in_button.clicked.connect(self.zoom_in)
 
@@ -298,12 +298,12 @@ class MobileView(QWidget):
             self.zoom_out_button.setMinimumHeight(20)
             self.zoom_out_button.setFixedWidth(40)
             self.zoom_out_button.setToolTip("Zoom Out")
-            self.zoom_out_button.setStyleSheet("background-color: lightblue; ")
+            self.zoom_out_button.setStyleSheet("background-color: #2196f3; color: white; border: none; border-radius: 5px; padding: 5px; font-weight: bold;")
             self.zoom_out_button.clicked.connect(self.zoom_out)
 
             self.toggle_pc_view_button = QPushButton("Toggle PC View")
             self.toggle_pc_view_button.setMinimumHeight(20)
-            self.toggle_pc_view_button.setStyleSheet(" background-color: lightblue ; ")
+            self.toggle_pc_view_button.setStyleSheet("background-color: #2196f3; color: white; border: none; border-radius: 5px; padding: 5px;")
             self.toggle_pc_view_button.clicked.connect(self.toggle_pc_view)
 
         

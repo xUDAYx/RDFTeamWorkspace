@@ -43,7 +43,7 @@ class PCView(QWidget):
         self.local_radio.setChecked(True)
 
         self.toggle_pc_view_button = QPushButton("Toggle Mobile View")
-        self.toggle_pc_view_button.setStyleSheet("background-color:lightblue;font-weight:bold;")
+        self.toggle_pc_view_button.setStyleSheet("background-color: #2196f3; color: white; border: none; border-radius: 5px; padding: 5px;")
         self.toggle_pc_view_button.clicked.connect(self.toggle_pc_view)
 
         # Connect radio buttons to reload preview
@@ -78,6 +78,7 @@ class PCView(QWidget):
             self.setStyleSheet(f"border: 2px solid {color};")
         else:
             self.setStyleSheet("border: none;")
+            
 
     def load_file_preview(self, file_path):
         try:
