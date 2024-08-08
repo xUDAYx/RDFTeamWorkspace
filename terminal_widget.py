@@ -7,12 +7,13 @@ class TerminalWidget(QWidget):
         super().__init__(parent)
 
         self.text_edit = QTextEdit(self)
-        self.text_edit.setFont(QFont("Monospace", 10))
-        self.text_edit.setStyleSheet("background-color: black; color: white;")
+        self.text_edit.setFont(QFont("Consolas", 11))        
+        self.text_edit.setStyleSheet("background-color: #2E2E2E; color: #E0E0E0; border: none; border-radius: 5px;")
         self.text_edit.setReadOnly(True)
 
         self.clear_button = QPushButton("Clear", self)
-        self.clear_button.setFixedSize(60, 30)
+        self.clear_button.setFixedSize(80, 30)
+        self.clear_button.setStyleSheet("background-color: #4A4A4A; color: #E0E0E0; border: none; border-radius: 15px;")
         self.clear_button.clicked.connect(self.clear_terminal)
 
         button_layout = QHBoxLayout()
@@ -22,6 +23,8 @@ class TerminalWidget(QWidget):
         layout = QVBoxLayout(self)
         layout.addLayout(button_layout)
         layout.addWidget(self.text_edit)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
         self.setLayout(layout)
 
     def keyPressEvent(self, event):
@@ -30,7 +33,7 @@ class TerminalWidget(QWidget):
         else:
             super().keyPressEvent(event)
 
-    def write(self, text, color="white"):
+    def write(self, text, color="#E0E0E0"):
         colored_text = f'<span style="color:{color};">{text}</span>'
         self.text_edit.append(colored_text)
         self.text_edit.ensureCursorVisible()

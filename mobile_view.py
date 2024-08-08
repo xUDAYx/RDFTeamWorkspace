@@ -245,7 +245,7 @@ class MobileView(QWidget):
             self.mobile_header = QWidget()
             self.mobile_header.setFixedHeight(40)
             self.mobile_header.setStyleSheet("""
-                background-color: #f0f0f0;
+                background-color: #e5e5e5;
                 border: none;
                     """)
             # Create the camera circle
@@ -296,7 +296,7 @@ class MobileView(QWidget):
             self.zoom_in_button = QPushButton("+")
             self.zoom_in_button.setMinimumHeight(20)
             self.zoom_in_button.setFixedWidth(40)
-            self.zoom_in_button.setStyleSheet("background-color: #2196f3; color: white; border: none; border-radius: 5px; padding: 5px; font-weight: bold;")
+            self.zoom_in_button.setStyleSheet("background-color:#f0f0f0;border-radius:5px;padding:4px 10px;border:1px solid #ccc;font-weight: bold;")
             self.zoom_in_button.setToolTip("Zoom In")
             self.zoom_in_button.clicked.connect(self.zoom_in)
 
@@ -304,12 +304,12 @@ class MobileView(QWidget):
             self.zoom_out_button.setMinimumHeight(20)
             self.zoom_out_button.setFixedWidth(40)
             self.zoom_out_button.setToolTip("Zoom Out")
-            self.zoom_out_button.setStyleSheet("background-color: #2196f3; color: white; border: none; border-radius: 5px; padding: 5px; font-weight: bold;")
+            self.zoom_out_button.setStyleSheet("background-color:#f0f0f0;border-radius:5px;padding:4px 10px;border:1px solid #ccc;font-weight: bold;")
             self.zoom_out_button.clicked.connect(self.zoom_out)
 
             self.toggle_pc_view_button = QPushButton("Toggle PC View")
             self.toggle_pc_view_button.setMinimumHeight(20)
-            self.toggle_pc_view_button.setStyleSheet("background-color: #2196f3; color: white; border: none; border-radius: 5px; padding: 5px;")
+            self.toggle_pc_view_button.setStyleSheet("background-color: #2196f3; color: white; border: none; border-radius: 5px; padding: 5px; ")           
             self.toggle_pc_view_button.clicked.connect(self.toggle_pc_view)
 
         

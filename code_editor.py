@@ -541,13 +541,15 @@ class CodeEditor(QMainWindow):
 
             find_button = QPushButton("find")
             find_button.clicked.connect(lambda:self.show_find_replace_dialog(editor))
-
+            find_button.setStyleSheet("background-color:#f0f0f0;border-radius:5px;padding:4px 10px;border:1px solid #ccc")
+            
             publish_button = QPushButton("Publish")
-            publish_button.setStyleSheet("background-color:red;color:white;font-weight:bold")
+            publish_button.setStyleSheet("background-color:red;color:white;font-weight:bold;border-radius:5px;padding:5px 10px")
             publish_button.clicked.connect(self.on_publish)
 
             format_button = QPushButton("Format Code")
             format_button.clicked.connect(lambda: self.format_current_code(editor, file_path))
+            format_button.setStyleSheet("background-color:#f0f0f0;border-radius:5px;padding:4px 10px;border:1px solid #ccc")
 
             search_tab_layout = QHBoxLayout()
             search_tab_layout.addStretch()
