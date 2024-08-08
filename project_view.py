@@ -298,51 +298,51 @@ class ProjectView(QWidget):
         self.path_line_edit = QLineEdit()
         self.path_line_edit.setReadOnly(True)
         self.path_line_edit.setMaximumWidth(300)
+        self.path_line_edit.setStyleSheet("background-color: #FFFFFF; border: 1px solid #CCCCCC; border-radius: 5px; padding: 5px;")
         button_layout.addWidget(self.path_line_edit)
-
         refresh_button = QPushButton("Refresh")
-        refresh_button.setStyleSheet("background-color:lightyellow")
+        refresh_button.setStyleSheet("background-color: #4CAF50; color: white; border: none; border-radius: 5px; padding: 5px;")
         refresh_button.setMaximumWidth(100)
+        refresh_button.setCursor(Qt.CursorShape.PointingHandCursor)
         refresh_button.clicked.connect(self.refresh_directory)
         button_layout.addWidget(refresh_button)
 
-        open_another_project_button = QPushButton("Open Another project")
-        open_another_project_button.setStyleSheet("background-color:lightgreen")
+        open_another_project_button = QPushButton("Open Another Project")
+        open_another_project_button.setStyleSheet("background-color: #4CAF50; color: white; border: none; border-radius: 5px; padding: 5px;")
         open_another_project_button.clicked.connect(self.select_workspace)
         open_another_project_button.setMaximumWidth(150)
-        
+        open_another_project_button.setCursor(Qt.CursorShape.PointingHandCursor)
+
         button_layout.addWidget(open_another_project_button)
 
-        
-
         layout.addLayout(button_layout)
+
         # Create a horizontal layout for the additional buttons
         additional_buttons_layout = QHBoxLayout()
 
         open_source_folder_button = QPushButton("Open Source Folder")
-        open_source_folder_button.setStyleSheet("background-color:pink;")
+        open_source_folder_button.setStyleSheet("background-color: #FF4081; color: white; border: none; border-radius: 5px; padding: 5px;")
         open_source_folder_button.setMaximumWidth(150)
+        open_source_folder_button.setCursor(Qt.CursorShape.PointingHandCursor)
         open_source_folder_button.clicked.connect(self.open_source_folder)
         additional_buttons_layout.addWidget(open_source_folder_button)
 
         self.merge_other_uis_button = QPushButton("Merge Other UIs")
-        self.merge_other_uis_button.setStyleSheet("background-color:lightblue;")
+        self.merge_other_uis_button.setStyleSheet("background-color: #2196F3; color: white; border: none; border-radius: 5px; padding: 5px;")
         self.merge_other_uis_button.setMaximumWidth(150)
+        self.merge_other_uis_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.merge_other_uis_button.clicked.connect(self.open_ui_merger)
         additional_buttons_layout.addWidget(self.merge_other_uis_button)
 
         merge_other_projects_button = QPushButton("Merge Other Projects")
-        merge_other_projects_button.setStyleSheet("background-color:orange;")
+        merge_other_projects_button.setStyleSheet("background-color: #FF9800; color: white; border: none; border-radius: 5px; padding: 5px;")
         merge_other_projects_button.clicked.connect(self.merge_project)
         merge_other_projects_button.setMaximumWidth(150)
+        merge_other_projects_button.setCursor(Qt.CursorShape.PointingHandCursor)
         additional_buttons_layout.addWidget(merge_other_projects_button)
 
-        more_button = QPushButton("More...")
-        more_button.setMaximumWidth(100)
-        additional_buttons_layout.addWidget(more_button)
 
         layout.addLayout(additional_buttons_layout)
-
         # Create the table view
         self.table_view = QTableWidget()
         self.table_view.setColumnCount(5)
