@@ -82,9 +82,10 @@ class MobileView(QWidget):
             self.container_widget.setStyleSheet("""
                 QWidget { 
                 
-                    border: 10px solid black;
+                    border: 5px solid #333333;
                     border-radius: 20px;
                     background-color: white;
+                    padding: 10px;
                 }
             """)
             self.container_layout = QVBoxLayout()
@@ -242,41 +243,46 @@ class MobileView(QWidget):
 
             # Create the mobile header
             self.mobile_header = QWidget()
-            self.mobile_header.setFixedHeight(20)
-            self.mobile_header.setStyleSheet("background-color: lightgrey; border:lightgrey; border-top-left-radius: 16px; border-top-right-radius: 16px;")
-
+            self.mobile_header.setFixedHeight(40)
+            self.mobile_header.setStyleSheet("""
+                background-color: #f0f0f0;
+                border: none;
+                    """)
             # Create the camera circle
             self.camera_circle = QLabel()
-            self.camera_circle.setFixedSize(10, 10)
+            self.camera_circle.setFixedSize(12, 12)
             self.camera_circle.setStyleSheet("""
                 QLabel {
                     margin: 0;
-                    border: 1px solid black;
-                    background-color: black;
-                    border-radius: 5px;
+                    border: none;
+                    background-color: #333;
+                    border-radius: 6px;
                 }
             """)
+
             # Create the notch
             self.notch = QWidget()
-            self.notch.setFixedSize(100, 20)
+            self.notch.setFixedSize(120, 15)
             self.notch.setStyleSheet("""
                 QWidget {
-                    background-color: black;
+                    background-color: #333;
+                    border-radius: 7px;
                 }
             """)
 
             self.mobile_header_layout = QHBoxLayout()
-            self.mobile_header_layout.setContentsMargins(10, 0, 10, 0)
-            self.mobile_header_layout.setSpacing(10)
+            self.mobile_header_layout.setContentsMargins(15, 0, 15, 0)
+            self.mobile_header_layout.setSpacing(15)
             self.mobile_header_layout.addWidget(self.camera_circle, alignment=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-            self.mobile_header_layout.addStretch(1)  # Add stretchable space to shift the notch to the left
+            self.mobile_header_layout.addStretch(1)
             self.mobile_header_layout.addWidget(self.notch, alignment=Qt.AlignmentFlag.AlignVCenter)
-            self.mobile_header_layout.addStretch(1)  # Add more stretchable space on the right
+            self.mobile_header_layout.addStretch(1)
             self.mobile_header.setLayout(self.mobile_header_layout)
+
             # Add the mobile header and web view to the container layout
             self.container_layout.addWidget(self.mobile_header)
             self.web_view = QWebEngineView()
-            self.web_view.setStyleSheet("border: black;")
+            self.web_view.setStyleSheet("border: none; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px;")
             self.container_layout.addWidget(self.web_view)
 
             # Add the container widget to the main layout
@@ -315,11 +321,6 @@ class MobileView(QWidget):
             self.layout.addLayout(self.zoom_layout)
         
             # Add toggle PC view button
-        
-        
-
-        
-
             self.tree_widget = QTreeWidget()
             self.tree_widget.setStyleSheet("border:none;")
             self.container_layout.addWidget(self.tree_widget)
