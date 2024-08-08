@@ -3,7 +3,7 @@ import os,json
 
 import shutil
 from PyQt6.QtWidgets import (QApplication, QWizard, QWizardPage, QVBoxLayout, QPushButton, QLabel, QLineEdit,
-                             QFileDialog, QMessageBox,QWidget, QComboBox, QHBoxLayout)
+                             QFileDialog, QMessageBox,QWidget, QComboBox, QHBoxLayout,QInputDialog)
 from PyQt6.QtCore import pyqtSignal, Qt, QEvent,QUrl
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from project_view import ProjectView
@@ -415,7 +415,7 @@ class NewProjectWizard(QWizard):
 
     def create_new_project(self):
         try:
-            destination_dir = r'C:\xampp\htdocs'
+            destination_dir = r'C:\xampp\htdocs\RDFProject_ROOT'
             project_name = self.project_name_input.text()
 
             if not destination_dir or not project_name:
@@ -437,22 +437,51 @@ class NewProjectWizard(QWizard):
             os.makedirs(os.path.join(dest_dir, "RDF_BVO"))
             os.makedirs(os.path.join(dest_dir, "RDF_DATA"))
 
-            # Create a default ProjectInfo.json file
-            project_info = {
-                "init": ""
-            }
+            # Ask user for UI file name
+            ui_file_name, ok = QInputDialog.getText(self, "UI File Name", "Enter the name for the UI file (do not include 'UI' in the name):")
+            if ok and ui_file_name:
+                ui_file_path = os.path.join(dest_dir, "RDF_UI", f"{ui_file_name}UI.php")
+                with open(ui_file_path, 'w') as ui_file:
+                                    ui_file.write("""
+                                    <table class="section">
+                                        <tr>
+                                            <th>Header 1</th>
+                                            <th>Header 2</th>
+                                        </tr>
+                                        <tr>
+                                            <td>Row 1, Cell 1</td>
+                                            <td>Row 1, Cell 2</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Row 2, Cell 1</td>
+                                            <td>Row 2, Cell 2</td>
+                                        </tr>
+                                    </table>
+                                    """)
+                # Create a default ProjectInfo.json file with UI file name
+                project_info = {
+                    "init": f"{ui_file_name}UI.php"
+                }
 
-            with open(os.path.join(dest_dir, "ProjectInfo.json"), 'w') as file:
-                json.dump(project_info, file, indent=4)
+                with open(os.path.join(dest_dir, "ProjectInfo.json"), 'w') as file:
+                    json.dump(project_info, file, indent=4)
 
-            self.project_created.emit(dest_dir)
-            QMessageBox.information(self, "Success", "New project created successfully.")
-            self.reset_wizard()
-            self.done(0)
+                # Copy RDFView.php file from template
+                template_path = os.path.join("project_templates", "RDFView.php")
+                dest_path = os.path.join(dest_dir, "RDFView.php")
+                shutil.copy(template_path, dest_path)
+
+                self.project_created.emit(dest_dir)
+                QMessageBox.information(self, "Success", "New project created successfully with UI file and RDFView.php.")
+                self.reset_wizard()
+                self.done(0)
+            else:
+                QMessageBox.warning(self, "Cancelled", "UI file creation cancelled. Project created without UI file.")
         except Exception as e:
             print(f"An error occurred while creating the new project: {e}")
             QMessageBox.critical(self, "Error", f"An error occurred while creating the new project: {e}")
-
+                
+                
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     wizard = NewProjectWizard()

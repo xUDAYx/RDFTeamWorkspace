@@ -378,7 +378,7 @@ class MobileView(QWidget):
 
                 relative_path = project_path[htdocs_index + len('htdocs') + 1:]
                 relative_path_parts = relative_path.split(os.sep)
-                project_folder = relative_path_parts[0]
+                project_folder = relative_path_parts[1]
                 project_path_up_to_folder = os.path.join(project_folder)
 
                 port = self.port_input.text() or "80"
@@ -386,7 +386,7 @@ class MobileView(QWidget):
                 is_local = self.local_radio.isChecked()
 
                 if is_local:
-                    preview_url = f"http://localhost:{port}/{quote(project_path_up_to_folder.replace(os.sep, '/'))}/RDFView.php?ui={file_name}"
+                    preview_url = f"http://localhost:{port}/RDFProject_ROOT/{project_folder}/RDFView.php?ui={file_name}"
                 else:
                     preview_url = f"https://takeitideas.in/software/RDFMicroProjects/reminderApp/RDFView.php?ui=reminderAppUI={file_name}"
 
