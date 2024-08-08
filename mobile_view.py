@@ -7,11 +7,11 @@ import qrcode
 from io import BytesIO
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFileDialog, QLabel, QSlider, QDialogButtonBox,
-    QPushButton, QApplication, QMessageBox, QInputDialog, QTreeWidget, QDialog, QTreeWidgetItem, QLineEdit, QRadioButton, QButtonGroup
+    QPushButton, QApplication, QMessageBox, QInputDialog, QTreeWidget, QDialog, QTreeWidgetItem, QLineEdit, QRadioButton, QButtonGroup, QAbstractItemView,QTreeView
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView  # type: ignore
-from PyQt6.QtCore import QUrl, Qt, QSize, QPoint, QThread, pyqtSignal
-from PyQt6.QtGui import QIcon,QGuiApplication,QPixmap, QImage
+from PyQt6.QtCore import QUrl, Qt, QSize, QPoint, QThread, pyqtSignal,QRegularExpression,  QSortFilterProxyModel,QModelIndex
+from PyQt6.QtGui import QIcon,QGuiApplication,QPixmap, QImage,QStandardItemModel, QStandardItem
 from urllib.parse import quote
 from PyQt6.QtWebEngineCore import QWebEnginePage  # type: ignore
 
@@ -164,7 +164,7 @@ class MobileView(QWidget):
                     background-color: #87ceeb;  # even lighter blue
                     border: 2px solid #1c1c1c;
                 }
-            """)
+            """)  
         
         self.QR_button = QPushButton("QR Code")
         self.QR_button.setStyleSheet("""
@@ -460,7 +460,8 @@ class MobileView(QWidget):
 
     def web_view_reload(self):
         self.web_view.reload()
-        
+
+         
     def toggle_pc_view(self):
         parent = self.parent()
         while parent:
@@ -520,7 +521,7 @@ class MobileView(QWidget):
             dialog.exec()
         except Exception as e:
             QMessageBox.Warning(self,"error",f"error generating QR code {e}")
-        
+    
 
     def copy_url_to_clipboard(self):
         try:

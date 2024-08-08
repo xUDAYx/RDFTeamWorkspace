@@ -17,7 +17,7 @@ class OpenProjectWizard(QWizard):
         
         self.setWindowTitle("Open Project Wizard")
 
-        self.rdf_project_root = "C:/xampp/htdocs/RDFProject_Root"
+        self.rdf_project_root = "C:/xampp/htdocs/RDFProjects_ROOT"
         self.project_view = ProjectView()
         if not os.path.exists(self.rdf_project_root):
             QMessageBox.critical(None, "Error", "RDFProject_Root folder does not exist.")

@@ -4,7 +4,7 @@ import os,json
 import shutil
 from PyQt6.QtWidgets import (QApplication, QWizard, QWizardPage, QVBoxLayout, QPushButton, QLabel, QLineEdit,
                              QFileDialog, QMessageBox,QWidget, QComboBox, QHBoxLayout)
-from PyQt6.QtCore import pyqtSignal, Qt, QEvent,QUrl
+from PyQt6.QtCore import pyqtSignal, Qt, QEvent,QUrl    
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from project_view import ProjectView
 
@@ -387,7 +387,7 @@ class NewProjectWizard(QWizard):
                 return
 
             sample_project_dir = os.path.join('project_templates', sample_project_name)
-            new_project_dir = os.path.join('C:\\xampp\\htdocs', new_project_name)
+            new_project_dir = os.path.join('C:\\xampp\\htdocs\\RDFProjects_ROOT', new_project_name)
 
             if os.path.exists(new_project_dir):
                 QMessageBox.critical(self, "Error", "A project with this name already exists!")
@@ -415,7 +415,7 @@ class NewProjectWizard(QWizard):
 
     def create_new_project(self):
         try:
-            destination_dir = r'C:\xampp\htdocs'
+            destination_dir = r'C:\xampp\htdocs\RDFProjects_ROOT'
             project_name = self.project_name_input.text()
 
             if not destination_dir or not project_name:

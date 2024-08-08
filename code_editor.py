@@ -161,6 +161,49 @@ class CustomCodeEditor(QsciScintilla):
                 self.zoom_out()
                 return
         super().keyPressEvent(event)
+    
+    def find_text(self, text):
+        self.search_text = text
+        self.current_search_pos = 0
+        self.find_next()
+
+    def find_next(self):
+        if self.search_text:
+            self.current_search_pos = self.findFirst(
+                self.search_text, False, False, False, True, self.current_search_pos
+            )
+            if self.current_search_pos == -1:
+                self.current_search_pos = 0
+
+    def find_previous(self):
+        if self.search_text:
+            self.current_search_pos = self.findFirst(
+                self.search_text, False, False, False, True, self.current_search_pos - 1, -1
+            )
+            if self.current_search_pos == -1:
+                self.current_search_pos = self.length()
+
+    def replace(self, text):
+        try:
+            if self.search_text:
+                self.replaceSelectedText(text)
+                self.find_next()
+        except Exception as e:
+            QMessageBox.Warning(self,"replace error",f"error in replace{e}")
+
+    def replace_all(self, find_text, replace_text):
+        try:
+            self.beginUndoAction()
+            pos = 0
+            while True:
+                pos = self.findFirst(find_text, False, False, False, True, pos)
+                if pos == -1:
+                    break
+                self.replaceSelectedText(replace_text)
+                pos += len(replace_text)
+            self.endUndoAction()
+        except Exception as e:
+            QMessageBox.Warning(self,"replace all error",f"error in replace all{e}")
         
 class CodeEditor(QMainWindow):
     def __init__(self):
@@ -496,10 +539,8 @@ class CodeEditor(QMainWindow):
             editor.setFont(QFont("Consolas", 12))
             terminal = TerminalWidget()
 
-            search_bar = QLineEdit()
-            search_bar.setVisible(False)
-            search_bar.setPlaceholderText("Search...")
-            search_bar.textChanged.connect(lambda text: self.search_text(text))
+            find_button = QPushButton("find")
+            find_button.clicked.connect(lambda:self.show_find_replace_dialog(editor))
 
             publish_button = QPushButton("Publish")
             publish_button.setStyleSheet("background-color:red;color:white;font-weight:bold")
@@ -510,7 +551,7 @@ class CodeEditor(QMainWindow):
 
             search_tab_layout = QHBoxLayout()
             search_tab_layout.addStretch()
-            search_tab_layout.addWidget(search_bar)
+            search_tab_layout.addWidget(find_button)
             search_tab_layout.addWidget(publish_button)
             search_tab_layout.addWidget(format_button)  # Add the format button to the layout
             layout.addLayout(search_tab_layout)
@@ -570,6 +611,39 @@ class CodeEditor(QMainWindow):
 
         except Exception as e:
             print(f"Failed to open new tab: {e}")
+
+    def show_find_replace_dialog(self, editor):
+        try:
+            find_replace_widget = QWidget(self)
+            find_replace_layout = QHBoxLayout(find_replace_widget)
+
+            find_edit = QLineEdit(find_replace_widget)
+            find_edit.setPlaceholderText("Find")
+            replace_edit = QLineEdit(find_replace_widget)
+            replace_edit.setPlaceholderText("Replace")
+
+            find_button = QPushButton("Find", find_replace_widget)
+            replace_button = QPushButton("Replace", find_replace_widget)
+            replace_all_button = QPushButton("Replace All", find_replace_widget)
+
+            find_replace_layout.addWidget(find_edit)
+            find_replace_layout.addWidget(replace_edit)
+            find_replace_layout.addWidget(find_button)
+            find_replace_layout.addWidget(replace_button)
+            find_replace_layout.addWidget(replace_all_button)
+
+            find_replace_widget.setLayout(find_replace_layout)
+            find_replace_widget.setWindowFlags(Qt.WindowType.Tool)
+            find_replace_widget.show()
+
+            # Connect buttons to editor's methods
+            find_button.clicked.connect(lambda: editor.find_text(find_edit.text()))
+            replace_button.clicked.connect(lambda: editor.replace(find_edit.text(), replace_edit.text()))
+            replace_all_button.clicked.connect(lambda: editor.replace_all(find_edit.text(), replace_edit.text()))
+
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Failed to show find and replace dialog: {e}")
+            logging.error(f"Failed to show find and replace dialog: {e}")
 
     def format_current_code(self, editor, file_path):
         try:
@@ -706,83 +780,18 @@ class CodeEditor(QMainWindow):
             logging.error(f"Error restarting application: {e}")
 
 
-    def eventFilter(self, source, event):
-        if event.type() == event.Type.KeyPress:
-            if event.key() == Qt.Key.Key_F and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
-                # Toggle search bar visibility for the current tab
-                current_widget = self.tab_widget.currentWidget()
-                search_bar = current_widget.findChild(QLineEdit)
-                if search_bar:
-                    search_bar.setVisible(not search_bar.isVisible())
-                    if search_bar.isVisible():
-                        search_bar.setFocus()
-                return True
-        return super().eventFilter(source, event)
-    
-    def highlight_text(self, text_edit, text):
+    def eventFilter(self, obj, event):
         try:
-            if not text:
-                print("No text to highlight")
-                return
-
-            # Clear previous indicators
-            text_edit.SendScintilla(QsciScintilla.SCI_INDICATORCLEARRANGE, 0, text_edit.length())
-
-            # Set up the indicator for highlighting
-            INDICATOR_NUM = 0
-            text_edit.SendScintilla(QsciScintilla.SCI_INDICSETSTYLE, INDICATOR_NUM, QsciScintilla.INDIC_BOX)
-
-            # Convert the color to a signed 32-bit integer
-            color = QColor("yellow").rgb()
-            if color > 0x7FFFFFFF:
-                color -= 0x100000000
-
-            text_edit.SendScintilla(QsciScintilla.SCI_INDICSETFORE, INDICATOR_NUM, color)
-
-            # Highlight occurrences of the text
-            pos = 0
-            found_any = False
-            while True:
-                found = text_edit.findFirst(text, False, False, False, False, True, pos)
-                if not found:
-                    break
-                found_any = True
-                start_pos = found.start()
-                end_pos = found.end()
-                print(f"Highlighting text from {start_pos} to {end_pos}")
-                text_edit.SendScintilla(QsciScintilla.SCI_INDICATORFILLRANGE, start_pos, end_pos - start_pos)
-                pos = end_pos
-
-            if not found_any:
-                print(f"Text '{text}' not found.")
-
+            if event.type() == event.Type.KeyPress:
+                if event.key() == Qt.Key.Key_F and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+                    self.show_find_replace_dialog()
         except Exception as e:
-            error_message = f"Error highlighting text: {e}"
-            print(error_message)
+            QMessageBox.warning(self, "Error", f"Failed to handle event: {e}")
+            logging.error(f"Failed to handle event: {e}")
+        return super().eventFilter(obj, event)
+    
             
 
-
-    def search_text(self, text):
-        print(f"Searching text: {text}")
-        try:
-            current_widget = self.tab_widget.currentWidget()
-            print(f"Current widget type: {type(current_widget)}")
-            if isinstance(current_widget, QsciScintilla):
-                print(f"Found QsciScintilla: {current_widget}")
-                current_widget.print_editor_content()  # Print editor content for debugging
-                self.highlight_text(current_widget, text)
-            else:
-                # Check if there's a layout or nested widgets to access QsciScintilla
-                editor = current_widget.findChild(QsciScintilla)
-                if editor:
-                    print(f"Found QsciScintilla via findChild: {editor}")  
-                    self.highlight_text(editor, text)
-                else:
-                    print("No QsciScintilla found in current editor widget.")
-        except Exception as e:
-            error_message = f"Error searching text: {e}"
-            print(error_message)
-            self.show_error_message(error_message)
                 
 
    
