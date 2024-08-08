@@ -6,12 +6,9 @@ from PyQt6.QtWidgets import (
     QPushButton, QApplication, QMessageBox, QInputDialog, QTreeWidget, QDialog, QTreeWidgetItem, QLineEdit, QRadioButton, QButtonGroup
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtCore import QUrl, Qt, QSize, QPoint
-from PyQt6.QtGui import QIcon, QGuiApplication
+from PyQt6.QtCore import QUrl, Qt
+from PyQt6.QtGui import QIcon
 from urllib.parse import quote
-from PyQt6.QtWebEngineCore import QWebEnginePage
-
-
 
 class PCView(QWidget):
     def __init__(self, parent=None):
@@ -28,13 +25,14 @@ class PCView(QWidget):
         self.container_layout.addWidget(self.web_view)
         
         # Add the container widget to the main layout
-        self.layout.addWidget(self.container_widget)
+        
 
         self.set_border_color(None)
         self.web_view.page().profile().downloadRequested.connect(self.handle_download)
 
         # Add port input and radio buttons
         self.port_input = QLineEdit()
+        self.port_input.setFixedWidth(20)
         self.port_input.setPlaceholderText("80")
         
         self.local_radio = QRadioButton("Local")
@@ -44,14 +42,21 @@ class PCView(QWidget):
         self.button_group.addButton(self.server_radio)
         self.local_radio.setChecked(True)
 
-        # self.local_radio.toggled.connect(self.reload_preview)
-        # self.server_radio.toggled.connect(self.reload_preview)
+        self.toggle_pc_view_button = QPushButton("Toggle Mobile View")
+        self.toggle_pc_view_button.setStyleSheet("background-color:lightblue;font-weight:bold;")
+        self.toggle_pc_view_button.clicked.connect(self.toggle_pc_view)
+
+        # Connect radio buttons to reload preview
+        self.local_radio.toggled.connect(self.on_radio_button_toggled)
+        self.server_radio.toggled.connect(self.on_radio_button_toggled)
 
         port_layout = QHBoxLayout()
         port_layout.addWidget(QLabel("Port:"))
         port_layout.addWidget(self.port_input)
         port_layout.addWidget(self.local_radio)
         port_layout.addWidget(self.server_radio)
+        port_layout.addWidget(self.toggle_pc_view_button)
+        port_layout.addStretch()
         self.layout.addLayout(port_layout)
 
         # Add tree widget for JSON view
@@ -61,9 +66,12 @@ class PCView(QWidget):
         self.layout.addWidget(self.tree_widget)
 
         # Add toggle PC view button
-        self.toggle_pc_view_button = QPushButton("Toggle Mobile View")
-        self.toggle_pc_view_button.clicked.connect(self.toggle_pc_view)
-        self.layout.addWidget(self.toggle_pc_view_button)
+
+        self.layout.addWidget(self.container_widget)
+        
+        
+
+        self.last_file_path = None  # Store the last opened file path
 
     def set_border_color(self, color):
         if color:
@@ -71,10 +79,10 @@ class PCView(QWidget):
         else:
             self.setStyleSheet("border: none;")
 
-    
-
     def load_file_preview(self, file_path):
         try:
+            self.last_file_path = file_path  # Store the file path for future use
+
             file_extension = os.path.splitext(file_path)[1].lower()
 
             if file_extension == '.json':
@@ -87,18 +95,17 @@ class PCView(QWidget):
                 if htdocs_index == -1:
                     raise ValueError("Project is not located under htdocs directory")
 
-                relative_path = project_path[htdocs_index + len('htdocs') + 1:]
-                relative_path_parts = relative_path.split(os.sep)
-                project_folder = relative_path_parts[0]
-                project_path_up_to_folder = os.path.join(project_folder)
+                relative_path = project_path[htdocs_index + len('htdocs/RDFProjects_ROOT') + 1:]
+                project_folder = relative_path.split(os.sep)[0]
+                # project_path_up_to_folder = os.path.join(project_folder)
 
                 port = self.port_input.text() or "80"
                 is_local = self.local_radio.isChecked()
 
                 if is_local:
-                    preview_url = f"http://localhost:{port}/{quote(project_path_up_to_folder.replace(os.sep, '/'))}/RDFView.php?ui={file_name}"
+                    preview_url = f"http://localhost:{port}/RDFProjects_ROOT/{project_folder}/RDFView.php?ui={file_name}"
                 else:
-                    preview_url = f"https://takeitideas.in/software/RDFMicroProjects/reminderApp/RDFView.php?ui=reminderAppUI={file_name}"
+                    preview_url = f"https://takeitideas.in/RDFProjects_ROOT/{project_folder}/RDFView.php?ui={file_name}"
 
                 url = QUrl.fromUserInput(preview_url)
                 print(url)
@@ -109,7 +116,7 @@ class PCView(QWidget):
         except Exception as e:
             print(f"Failed to load preview: {e}")
             self.web_view.setHtml("<html><body><h1>Failed to load preview</h1></body></html>")
-    
+
     def show_json_in_tree_view(self, file_path):
         try:
             with open(file_path, 'r') as json_file:
@@ -159,3 +166,7 @@ class PCView(QWidget):
                 parent.toggle_pc_view()
                 break
             parent = parent.parent()
+
+    def on_radio_button_toggled(self):
+        if self.last_file_path:
+            self.load_file_preview(self.last_file_path)
