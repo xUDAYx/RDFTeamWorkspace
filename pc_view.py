@@ -44,6 +44,9 @@ class PCView(QWidget):
         self.button_group.addButton(self.server_radio)
         self.local_radio.setChecked(True)
 
+        self.local_radio.toggled.connect(self.reload_preview)
+        self.server_radio.toggled.connect(self.reload_preview)
+
         port_layout = QHBoxLayout()
         port_layout.addWidget(QLabel("Port:"))
         port_layout.addWidget(self.port_input)
@@ -67,35 +70,42 @@ class PCView(QWidget):
             self.setStyleSheet(f"border: 2px solid {color};")
         else:
             self.setStyleSheet("border: none;")
+    def reload_preview(self):
+        if self.current_file_path:
+            self.load_file_preview(self.current_file_path)
 
     def load_file_preview(self, file_path):
+        self.current_file_path = file_path
         try:
             file_extension = os.path.splitext(file_path)[1].lower()
 
             if file_extension == '.json':
                 self.show_json_in_tree_view(file_path)
             elif file_extension == '.php' and file_path.endswith('UI.php'):
-                file_name = os.path.splitext(os.path.basename(file_path))[0]
                 project_path = os.path.dirname(file_path)
                 htdocs_index = project_path.lower().find('htdocs')
 
                 if htdocs_index == -1:
                     raise ValueError("Project is not located under htdocs directory")
 
-                relative_path = project_path[htdocs_index + len('htdocs') + 1:]
-                relative_path_parts = relative_path.split(os.sep)
-                project_folder = relative_path_parts[0]
-                project_path_up_to_folder = os.path.join(project_folder)
+                # Get the relative path after 'htdocs/RDFProjects_ROOT'
+                relative_path = project_path[htdocs_index + len('htdocs/RDFProjects_ROOT') + 1:]
+                # Get only the first folder after RDFProjects_ROOT (the immediate project folder)
+                project_folder = relative_path.split(os.sep)[0]
+
+                file_name = os.path.splitext(os.path.basename(file_path))[0]
 
                 port = self.port_input.text() or "80"
+                self.port_input.setPlaceholderText("80")
                 is_local = self.local_radio.isChecked()
 
                 if is_local:
-                    preview_url = f"http://localhost:{port}/{quote(project_path_up_to_folder.replace(os.sep, '/'))}/RDFView.php?ui={file_name}"
+                    preview_url = f"http://localhost:{port}/RDFProjects_ROOT/{project_folder}/RDFView.php?ui={file_name}"
                 else:
-                    preview_url = f"https://takeitideas.in/software/RDFMicroProjects/reminderApp/RDFView.php?ui=reminderAppUI={file_name}"
+                    preview_url = f"https://takeitideas.in/RDFProjects_ROOT/{project_folder}/RDFView.php?ui={file_name}"
 
                 url = QUrl.fromUserInput(preview_url)
+                self.url_display.setText(preview_url)  
                 print(url)
                 self.web_view.load(url)
                 self.tree_widget.clear()
