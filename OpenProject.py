@@ -20,7 +20,7 @@ class OpenProjectWizard(QWizard):
         self.rdf_project_root = "C:/xampp/htdocs/RDFProjects_ROOT"
         self.project_view = ProjectView()
         if not os.path.exists(self.rdf_project_root):
-            QMessageBox.critical(None, "Error", "RDFProject_Root folder does not exist.")
+            QMessageBox.critical(None, "Error", "RDFProject_ROOT folder does not exist.")
             sys.exit(1)
 
         self.intro_page = QWizardPage()
@@ -28,7 +28,7 @@ class OpenProjectWizard(QWizard):
         self.intro_layout = QVBoxLayout(self.intro_page)
 
         # Heading label for the main root folder
-        self.heading_label = QLabel(f"Folder for RDFProject_Root")
+        self.heading_label = QLabel(f"Folder for RDFProjects_ROOT")
         self.heading_label.setStyleSheet("font-size: 18px; font-weight: bold;")
         self.intro_layout.addWidget(self.heading_label)
 
