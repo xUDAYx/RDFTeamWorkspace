@@ -415,7 +415,7 @@ class NewProjectWizard(QWizard):
 
     def create_new_project(self):
         try:
-            destination_dir = r'C:\xampp\htdocs'
+            destination_dir = r'C:\xampp\RDFProjects_ROOT'
             project_name = self.project_name_input.text()
 
             if not destination_dir or not project_name:

@@ -210,7 +210,7 @@ class CodeEditor(QMainWindow):
     def __init__(self):
         try:
             super().__init__()
-            self.setWindowTitle("Code Editor")
+            self.setWindowTitle("RDF STUDIO")
             self.showMaximized()
             self.setWindowFlags(Qt.WindowType.Window)
             self.setGeometry(100, 100, 800, 600)
