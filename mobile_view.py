@@ -178,6 +178,7 @@ class MobileView(QWidget):
                     }
                 """)
             self.QR_button.clicked.connect(self.show_qr_code)
+            self.QR_button.hide()
         
             self.copy_url_button = QPushButton("Copy URL")
             self.copy_url_button.setStyleSheet("""
@@ -194,12 +195,28 @@ class MobileView(QWidget):
                 """)
             self.copy_url_button.clicked.connect(self.copy_url_to_clipboard)
 
+            self.app_store_button = QPushButton("App Store")
+            self.app_store_button.setStyleSheet("""
+                    QPushButton {
+                        background-color: #2196f3;
+                        color: white;
+                    
+                        border: none;
+                        border-radius: 5px;
+                        padding: 5px;
+                        margin-left: 2px;
+                        margin-right: 2px;
+                    }
+                """)
+            self.app_store_button.clicked.connect(self.app_store)
+
             self.navigation_layout.addWidget(self.back_button)
             self.navigation_layout.addWidget(self.forward_button)
             self.navigation_layout.addWidget(self.reload_button)
             self.navigation_layout.addWidget(self.bookmark_button)
             self.navigation_layout.addWidget(self.QR_button)
             self.navigation_layout.addWidget(self.copy_url_button)
+            self.navigation_layout.addWidget(self.app_store_button)
             self.navigation_layout.addStretch(1)  
         
             # Add stretchable space to align buttons to the left
@@ -327,13 +344,11 @@ class MobileView(QWidget):
             self.container_layout.addWidget(self.tree_widget)
             self.tree_widget.hide()
 
-            self.set_border_color(None)
+            self.set_border_color(None)  
 
             self.web_view.page().profile().downloadRequested.connect(self.handle_download)
         except Exception as e:
-            print(f"An error occurred during initialization: {str(e)}")
-
-        
+            print(f"An error occurred during initialization: {str(e)}")     
 
     def set_border_color(self, color):
         if color:
@@ -350,8 +365,20 @@ class MobileView(QWidget):
         self.web_view.setZoomFactor(self.web_view.zoomFactor() - 0.1)
 
     def reload_preview(self):
-        if self.current_file_path:
+        try:
+            if not self.current_file_path:
+                QMessageBox.warning(self, "Warning", "No Project Opened to preview")
+                return
+
+            # Proceed with reloading the preview if a project is opened
             self.load_file_preview(self.current_file_path)
+        except AttributeError:
+            QMessageBox.warning(self, "Warning", "No Project Opened to preview")
+        except Exception as e:
+            # Handle any other unexpected exceptions
+            QMessageBox.critical(self, "Error", f"An unexpected error occurred: {e}")
+            print(f"Exception in reload_preview: {e}")
+
 
     def load_file_preview(self, file_path):
         self.current_file_path = file_path
@@ -380,8 +407,10 @@ class MobileView(QWidget):
 
                 if is_local:
                     preview_url = f"http://localhost:{port}/RDFProjects_ROOT/{project_folder}/RDFView.php?ui={file_name}"
+                    self.QR_button.hide()
                 else:
                     preview_url = f"https://takeitideas.in/RDFProjects_ROOT/{project_folder}/RDFView.php?ui={file_name}"
+                    self.QR_button.show()
 
                 url = QUrl.fromUserInput(preview_url)
                 self.url_display.setText(preview_url)  
@@ -519,6 +548,12 @@ class MobileView(QWidget):
             self.browser_opener.start()
         else:
             QMessageBox.warning(None, "No URL", "No URL to open in the browser. Please preview a file first.")
+
+    def app_store(self):
+        url = "https://takeitideas.in/pinterest.php"
+        self.browser_opener = BrowserOpener(url)
+        self.browser_opener.finished.connect(self.handle_browser_opened)
+        self.browser_opener.start()
 
     def handle_browser_opened(self):
         self.browser_opener.finished.disconnect(self.handle_browser_opened)
