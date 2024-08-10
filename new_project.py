@@ -2,7 +2,7 @@ import sys
 import os,json
 
 import shutil
-from PyQt6.QtWidgets import (QApplication, QWizard, QWizardPage, QVBoxLayout, QPushButton, QLabel, QLineEdit,
+from PyQt6.QtWidgets import (QApplication, QWizard, QWizardPage, QVBoxLayout, QPushButton, QLabel, QLineEdit,QInputDialog,
                              QFileDialog, QMessageBox,QWidget, QComboBox, QHBoxLayout)
 from PyQt6.QtCore import pyqtSignal, Qt, QEvent,QUrl
 from PyQt6.QtWebEngineWidgets import QWebEngineView
@@ -415,7 +415,7 @@ class NewProjectWizard(QWizard):
 
     def create_new_project(self):
         try:
-            destination_dir = r'C:\xampp\RDFProjects_ROOT'
+            destination_dir = r'C:\xampp\htdocs\RDFProjects_ROOT'
             project_name = self.project_name_input.text()
 
             if not destination_dir or not project_name:

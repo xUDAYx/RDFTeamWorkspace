@@ -876,20 +876,22 @@ class UploadThread(QThread):
 
             def upload_file(local_file_path, remote_file_path):
                 total_size = os.path.getsize(local_file_path)
-                with open(local_file_path, 'rb') as file_data:
-                    try:
-                        def upload_progress(block):
-                            nonlocal uploaded_size
-                            uploaded_size += len(block)
-                            progress_percentage = int((uploaded_size / total_size) * 100)
-                            self.progress.emit(progress_percentage)
-
-                        uploaded_size = 0
-                        # Update the current file being uploaded
+                uploaded_size = 0
+                
+                def upload_progress(block):
+                    nonlocal uploaded_size
+                    uploaded_size += len(block)
+                    progress_percentage = int((uploaded_size / total_size) * 100)
+                    self.progress.emit(progress_percentage)
+                
+                try:
+                    with open(local_file_path, 'rb') as file_data:
                         ftp.storbinary(f'STOR {remote_file_path}', file_data, callback=upload_progress)
-                    except error_perm as e:
-                        print(f"Failed to upload {remote_file_path}: {e}")
-                        raise
+                        print(f"file uploaded {remote_file_path}")
+                except error_perm as e:
+                    print(f"Failed to upload {remote_file_path}: {e}")
+                    raise
+
 
             make_remote_dirs(remote_dir)
 
