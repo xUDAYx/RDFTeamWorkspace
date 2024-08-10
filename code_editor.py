@@ -10,7 +10,7 @@ from pc_view import PCView
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 from PyQt6.QtGui import QSyntaxHighlighter
 from PyQt6.Qsci import QsciDocument
-from PyQt6.QtWidgets import  QDialog,QPlainTextEdit, QProgressBar,QLabel, QMainWindow,QLineEdit,QMenu, QVBoxLayout, QWidget, QSplitter, QTreeView, QToolBar, QFileDialog, QToolButton, QTabWidget, QApplication, QMessageBox, QPushButton, QTextEdit, QScrollBar, QHBoxLayout, QSizePolicy
+from PyQt6.QtWidgets import  QDialog,QPlainTextEdit, QProgressBar,QInputDialog,QLabel, QMainWindow,QLineEdit,QMenu, QVBoxLayout, QWidget, QSplitter, QDialogButtonBox, QTreeView, QToolBar, QFileDialog, QToolButton, QTabWidget, QApplication, QMessageBox, QPushButton, QTextEdit, QScrollBar, QHBoxLayout, QSizePolicy
 from PyQt6.QtGui import  QTextCharFormat,QAction, QPixmap, QFileSystemModel, QIcon, QFont, QPainter, QColor, QTextFormat, QTextCursor, QKeySequence, QShortcut
 from PyQt6.QtCore import Qt, QModelIndex, QTimer, QDir,QThread, pyqtSlot, QSize, QRect, QProcess, QPoint, pyqtSignal
 from PyQt6.Qsci import QsciScintilla, QsciLexerPython, QsciLexerHTML, QsciLexerJavaScript, QsciLexerCSS
@@ -669,30 +669,60 @@ class CodeEditor(QMainWindow):
 
     
 
-    def on_publish(self):
+    def validate_ftp_credentials(self, server, username, password):
+        print("validating ftp credentials")
         try:
-            server = 'ftp.takeitideas.in'
-            username = "u257313635"
-            password = 'Vijaysss@123'
-            
-            current_index = self.tab_widget.currentIndex()
-            current_tab = self.tab_widget.widget(current_index)
-            project_dir = os.path.dirname(os.path.dirname(current_tab.file_path))
-            project_name = os.path.basename(project_dir)
-            remote_dir = f'/public_html/RDFProjects_ROOT/{project_name}'
-            
-            # Create and show the progress dialog
-            dialog = PublishDialog(self)
-            dialog.show()
+            with FTP(server, timeout=160) as ftp:
+                ftp.login(user=username, passwd=password)
+            return True
+        except error_perm as e:
+            print(f"FTP login failed: {e}")
+            return False
 
-            # Start the upload in a separate thread
-            self.upload_thread = UploadThread(server, username, password, project_dir, remote_dir)
-            self.upload_thread.progress.connect(dialog.update_progress)
-            self.upload_thread.finished.connect(dialog.upload_finished)
-            self.upload_thread.start()
-            
-        except Exception as e:
-            QMessageBox.warning(self, 'Error', f'Failed to publish project: {e}')
+    def on_publish(self):
+        server = 'ftp.takeitideas.in'
+
+        while True:  # Loop until valid inputs are provided
+            login_dialog = LoginDialog(self)
+            if login_dialog.exec() == QDialog.DialogCode.Accepted:
+                username, password = login_dialog.get_credentials()
+
+                if not username:
+                    QMessageBox.warning(self, 'Error', 'Username is required.')
+                    continue  # Stay in the loop, keep the dialog open
+
+                if not password:
+                    QMessageBox.warning(self, 'Error', 'Password is required.')
+                    continue  # Stay in the loop, keep the dialog open
+
+                # Validate FTP credentials
+                if not self.validate_ftp_credentials(server, username, password):
+                    QMessageBox.warning(self, 'Error', 'Invalid username or password.')
+                    continue  # Stay in the loop, keep the dialog open
+
+                # Break the loop if both username and password are valid
+                break
+
+            else:
+                # User cancelled the dialog
+                QMessageBox.information(self, 'Cancelled', 'Publishing cancelled.')
+                return
+
+        current_index = self.tab_widget.currentIndex()
+        current_tab = self.tab_widget.widget(current_index)
+        project_dir = os.path.dirname(os.path.dirname(current_tab.file_path))
+        project_name = os.path.basename(project_dir)
+        remote_dir = f'/public_html/RDFProjects_ROOT/{project_name}'
+
+        # Create and show the progress dialog
+        dialog = PublishDialog(self)
+        dialog.show()
+
+        # Start the upload in a separate thread
+        self.upload_thread = UploadThread(server, username, password, project_dir, remote_dir)
+        self.upload_thread.progress.connect(dialog.update_progress)
+        self.upload_thread.finished.connect(dialog.upload_finished)
+        self.upload_thread.start()
     
 
     def get_language_from_extension(self, extension):
@@ -805,18 +835,6 @@ class CodeEditor(QMainWindow):
         return super().eventFilter(obj, event)
     
             
-
-                
-
-   
-    def toggle_search_bar(self, search_bar):
-        try:
-            search_bar.setVisible(not search_bar.isVisible())
-            if search_bar.isVisible():
-                search_bar.setFocus()
-        except Exception as e:
-            print(f"Error toggling search bar visibility: {e}")
-            self.show_error_message(f"Error toggling search bar visibility: {e}")
 
     def show_error_message(self, message):
         error_dialog = QMessageBox(self)
@@ -958,3 +976,29 @@ class PublishDialog(QDialog):
         else:
             QMessageBox.critical(self, "Error", "Failed to upload project.")
         self.accept()
+class LoginDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle('FTP Login')
+
+        self.layout = QVBoxLayout(self)
+
+        self.username_label = QLabel("Username:")
+        self.layout.addWidget(self.username_label)
+        self.username_input = QLineEdit(self)
+        self.layout.addWidget(self.username_input)
+
+        self.password_label = QLabel("Password:")
+        self.layout.addWidget(self.password_label)
+        self.password_input = QLineEdit(self)
+        self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self.layout.addWidget(self.password_input)
+
+        self.buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
+        self.layout.addWidget(self.buttons)
+
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+
+    def get_credentials(self):
+        return self.username_input.text(), self.password_input.text()   
