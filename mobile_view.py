@@ -13,7 +13,8 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView  # type: ignore
 from PyQt6.QtCore import QUrl, Qt, QSize, QPoint, QThread, pyqtSignal,QRegularExpression,  QSortFilterProxyModel,QModelIndex
 from PyQt6.QtGui import QIcon,QGuiApplication,QPixmap, QImage,QStandardItemModel, QStandardItem
 from urllib.parse import quote
-from PyQt6.QtWebEngineCore import QWebEnginePage  # type: ignore
+from PyQt6.QtWebEngineCore import QWebEnginePage 
+from workers import QRCodeWorker, ClipboardWorker
 
 
 class CustomDialog(QDialog):
@@ -468,72 +469,47 @@ class MobileView(QWidget):
         self.url_display.clear()
 
     def show_qr_code(self):
-        try:
-            # Get the URL from the QLineEdit
-            url = self.url_display.text()
-            
-            if not url:
-                QMessageBox.warning(self, "No URL", "No URL available to generate QR code.")
-                return
-            
-            # Generate the QR code
-            qr = qrcode.QRCode(
-                version=1,
-                error_correction=qrcode.constants.ERROR_CORRECT_L,
-                box_size=10,
-                border=4,
-            )
-            qr.add_data(url)
-            qr.make(fit=True)
-            
-            img = qr.make_image(fill_color="black", back_color="white")
-            
-            # Convert the PIL image to a QPixmap
-            buffer = BytesIO()
-            img.save(buffer, format="PNG")
-            qimage = QImage()
-            qimage.loadFromData(buffer.getvalue())
-            pixmap = QPixmap(qimage)
-            
-            # Display the QR code in a dialog
-            dialog = QDialog(self)
-            dialog.setWindowTitle("QR Code")
-            layout = QVBoxLayout(dialog)
-            label = QLabel(dialog)
-            label.setPixmap(pixmap)
-            layout.addWidget(label)
+        url = self.url_display.text()
+        
+        if not url:
+            QMessageBox.warning(self, "No URL", "No URL available to generate QR code.")
+            return
+        
+        self.qr_worker = QRCodeWorker(url)
+        self.qr_worker.finished.connect(self.display_qr_code)
+        self.qr_worker.error.connect(lambda e: QMessageBox.warning(self, "Error", f"Error generating QR code: {e}"))
+        self.qr_worker.start()
 
-            url_label = QLabel(f"QR code for URL: {url}", dialog)
-            url_label.setWordWrap(True)
-            layout.addWidget(url_label)
-                
-            # Add OK button to close the dialog
-            button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
-            button_box.accepted.connect(dialog.accept)
-            layout.addWidget(button_box)
+    def display_qr_code(self, pixmap, url):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("QR Code")
+        layout = QVBoxLayout(dialog)
+        label = QLabel(dialog)
+        label.setPixmap(pixmap)
+        layout.addWidget(label)
+
+        url_label = QLabel(f"QR code for URL: {url}", dialog)
+        url_label.setWordWrap(True)
+        layout.addWidget(url_label)
             
-            dialog.exec()
-        except Exception as e:
-            QMessageBox.Warning(self,"error",f"error generating QR code {e}")
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
+        button_box.accepted.connect(dialog.accept)
+        layout.addWidget(button_box)
+        
+        dialog.exec()
     
 
     def copy_url_to_clipboard(self):
-        try:
-            # Get the URL from the QLineEdit
-            url = self.url_display.text()
+        url = self.url_display.text()
+        
+        if not url:
+            QMessageBox.warning(self, "No URL", "No URL available to copy.")
+            return
 
-            if not url:
-                QMessageBox.warning(self, "No URL", "No URL available to copy.")
-                return
-
-            # Access the clipboard and set the text
-            clipboard = QGuiApplication.clipboard()
-            clipboard.setText(url)
-
-            # Notify the user
-            QMessageBox.information(self, "URL Copied", "URL has been copied to the clipboard.")
-        except Exception as e:
-            QMessageBox.Warning(self,"copy error",f"error in copy url{e}")
+        self.clipboard_worker = ClipboardWorker(url)
+        self.clipboard_worker.finished.connect(lambda msg: QMessageBox.information(self, "URL Copied", msg))
+        self.clipboard_worker.error.connect(lambda e: QMessageBox.warning(self, "Copy Error", f"Error copying URL: {e}"))
+        self.clipboard_worker.start()
 
     def open_in_browser(self):
         url = self.url_display.text()
