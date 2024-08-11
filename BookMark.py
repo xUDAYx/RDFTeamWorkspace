@@ -1,56 +1,64 @@
 import json
 import os
-from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QLineEdit, QPushButton, QTreeView,
-    QVBoxLayout, QWidget, QAbstractItemView, QLabel
-)
+from PyQt6.QtCore import pyqtSignal, Qt, QModelIndex
 from PyQt6.QtGui import QStandardItemModel, QStandardItem
-from PyQt6.QtCore import Qt, QModelIndex
+from PyQt6.QtWidgets import (
+    QApplication, QWizard, QTreeView, QVBoxLayout, QWizardPage, QLineEdit, QPushButton, QAbstractItemView
+)
 import webbrowser
 import sys
 
-class BookmarkApp(QMainWindow):
+class BookmarkWizard(QWizard):
+    urlClicked = pyqtSignal(str)  # Custom signal to emit URL when clicked
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Bookmark Manager")
         self.setGeometry(100, 100, 600, 400)
 
-        self.bookmarks = []  # Initialize as a list of tuples: (serial_number, tag, url)
+        # Create pages
+        self.bookmark_page = QWizardPage()
+        self.bookmark_page.setTitle("Bookmarks")
 
-        # Create widgets
-        self.heading_label = QLabel("Website Bookmarks", self)
-        self.heading_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.heading_label.setStyleSheet("font-size: 18px; font-weight: bold; margin-bottom: 10px;")
+        # Initialize bookmark storage
+        self.bookmarks = []
 
-        self.url_input = QLineEdit(self)
+        # Create UI components for the first page
+        self.url_input = QLineEdit(self.bookmark_page)
         self.url_input.setPlaceholderText("Enter website URL")
-        self.tag_input = QLineEdit(self)
+        self.tag_input = QLineEdit(self.bookmark_page)
         self.tag_input.setPlaceholderText("Enter tags (comma-separated)")
-        self.add_button = QPushButton("Add Bookmark", self)
-        self.search_input = QLineEdit(self)
+        self.add_button = QPushButton("Add Bookmark", self.bookmark_page)
+        self.search_input = QLineEdit(self.bookmark_page)
         self.search_input.setPlaceholderText("Search bookmarks by tag")
-        self.bookmark_tree = QTreeView(self)
+        self.bookmark_tree = QTreeView(self.bookmark_page)
 
         # Set layout
         layout = QVBoxLayout()
-        layout.addWidget(self.heading_label)
         layout.addWidget(self.url_input)
         layout.addWidget(self.tag_input)
         layout.addWidget(self.add_button)
         layout.addWidget(self.search_input)
         layout.addWidget(self.bookmark_tree)
+        self.bookmark_page.setLayout(layout)
 
-        container = QWidget()
-        container.setLayout(layout)
-        self.setCentralWidget(container)
+        # Add the page to the wizard
+        self.addPage(self.bookmark_page)
 
-        # Setup tree view
+        # Set up the tree view model
         self.model = QStandardItemModel()
         self.model.setHorizontalHeaderLabels(["Bookmarks"])
         self.bookmark_tree.setModel(self.model)
         self.bookmark_tree.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)  # Disable editing
-        self.bookmark_tree.clicked.connect(self.open_bookmark)
+        self.bookmark_tree.clicked.connect(self.on_bookmark_clicked)
 
+        self.setButtonLayout([
+            QWizard.WizardButton.Stretch,
+            QWizard.WizardButton.BackButton,
+            QWizard.WizardButton.NextButton,
+            QWizard.WizardButton.CancelButton,
+        ])
+       
         # Connect signals
         self.add_button.clicked.connect(self.add_bookmark)
         self.search_input.textChanged.connect(self.filter_bookmarks)
@@ -75,7 +83,7 @@ class BookmarkApp(QMainWindow):
         for serial_number, tag, url in sorted(self.bookmarks):
             display_text = f"{serial_number}. {tag} - {url}"
             item = QStandardItem(display_text)
-            item.setData(url, Qt.ItemDataRole.UserRole)  # Store URL in item data
+            item.setData(url, Qt.ItemDataRole.UserRole)
             self.model.appendRow(item)
 
     def filter_bookmarks(self):
@@ -86,10 +94,12 @@ class BookmarkApp(QMainWindow):
             should_hide = search_text not in item_text
             self.bookmark_tree.setRowHidden(row, QModelIndex(), should_hide)
 
-    def open_bookmark(self, index: QModelIndex):
+    def on_bookmark_clicked(self, index: QModelIndex):
         item = self.model.itemFromIndex(index)
         url = item.data(Qt.ItemDataRole.UserRole)
         if url:
+            print(f"Emitting signal with URL: {url}")
+            self.urlClicked.emit(url)
             webbrowser.open(url)
 
     def save_bookmarks(self):
@@ -104,7 +114,6 @@ class BookmarkApp(QMainWindow):
             try:
                 with open("bookmarks.json", "r") as file:
                     data = json.load(file)
-                    # Ensure the loaded data is a list of tuples
                     if isinstance(data, list) and all(isinstance(entry, list) and len(entry) == 3 for entry in data):
                         self.bookmarks = [(int(entry[0]), entry[1], entry[2]) for entry in data]
                     else:
@@ -113,11 +122,12 @@ class BookmarkApp(QMainWindow):
                     self.update_bookmark_tree()
             except Exception as e:
                 print(f"Error loading bookmarks: {e}")
-                self.bookmarks = []  # Reset to empty list in case of error
+                self.bookmarks = []
                 self.update_bookmark_tree()
+                
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = BookmarkApp()
-    window.show()
+    bookmark_wizard = BookmarkWizard()
+    bookmark_wizard.show()
     sys.exit(app.exec())

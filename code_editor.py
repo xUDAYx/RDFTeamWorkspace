@@ -219,6 +219,7 @@ class CodeEditor(QMainWindow):
             self.terminal = TerminalWidget()
             self.wizard = NewProjectWizard()
             self.open_project_wizard = OpenProjectWizard()
+            self.ref_view = ReferenceView()
             self.project_view = ProjectView(self)
             self.open_project_wizard.project_opened.connect(self.project_view.update_project_view)
             self.wizard.project_created.connect(self.project_view.update_project_view)
@@ -240,6 +241,11 @@ class CodeEditor(QMainWindow):
             # Create the toolbar
             self.toolbar = QToolBar("Main Toolbar")
 
+            self.ref_view_action = QAction("Reference View", self)
+            
+            self.ref_view_action.triggered.connect(self.toggle_ref_view)
+           
+
             # Create Project menu and actions
             project_menu = QMenu("Project", self)
             self.open_project_action = QAction("Open Project", self)
@@ -257,6 +263,7 @@ class CodeEditor(QMainWindow):
             project_menu.addAction(self.new_project_action)
             project_menu.addAction(self.create_file_action)
             project_menu.addAction(self.save_action)
+            project_menu.addAction(self.ref_view_action)
 
             # Create a Project button with the project menu
             project_button = QToolButton(self)
@@ -375,7 +382,7 @@ class CodeEditor(QMainWindow):
             self.ref_view.toggle_stay_on_top(True)
         else:
             self.ref_view.toggle_stay_on_top(False)
-            self.ref_view.hide()   
+             
     def toggle_pc_view(self):
         if not self.pc_view_active:
             # Activate PC view
@@ -555,13 +562,10 @@ class CodeEditor(QMainWindow):
             format_button.setStyleSheet("background-color:#f0f0f0;border-radius:5px;padding:4px 10px;border:1px solid #ccc")
             
             # Create an instance of ReferenceView
-            self.ref_view = ReferenceView()
+            
 
             # Add a button to the toolbar to show/hide the reference view
-            self.ref_view_action = QAction(QIcon("ref_view.png"), "Reference View", self)
-            self.ref_view_action.setCheckable(True)
-            self.ref_view_action.toggled.connect(self.toggle_ref_view)
-            self.toolbar.addAction(self.ref_view_action)
+            
 
             search_tab_layout = QHBoxLayout()
             search_tab_layout.addStretch()

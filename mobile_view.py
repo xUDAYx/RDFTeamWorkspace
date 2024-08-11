@@ -2,6 +2,7 @@ import os,sys
 import json
 import logging
 import webbrowser,subprocess
+
 from PIL import Image
 import qrcode
 from io import BytesIO
@@ -10,12 +11,12 @@ from PyQt6.QtWidgets import (
     QPushButton, QApplication, QMessageBox, QInputDialog, QTreeWidget, QDialog, QTreeWidgetItem, QLineEdit, QRadioButton, QButtonGroup, QAbstractItemView,QTreeView
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView  # type: ignore
-from PyQt6.QtCore import QUrl, Qt, QSize, QPoint, QThread, pyqtSignal,QRegularExpression,  QSortFilterProxyModel,QModelIndex
+from PyQt6.QtCore import QUrl, Qt, QSize, QPoint, QThread, pyqtSignal,QRegularExpression,  QSortFilterProxyModel,QModelIndex,QSignalMapper
 from PyQt6.QtGui import QIcon,QGuiApplication,QPixmap, QImage,QStandardItemModel, QStandardItem
 from urllib.parse import quote
 from PyQt6.QtWebEngineCore import QWebEnginePage 
 from workers import QRCodeWorker, ClipboardWorker
-from BookMark import BookmarkApp
+from BookMark import BookmarkWizard
 
 
 
@@ -71,7 +72,7 @@ class MobileView(QWidget):
             super().__init__(parent)
             self.layout = QVBoxLayout()
             self.setLayout(self.layout)
-
+            
             # Create a container widget for the web view
             self.container_widget = QWidget()
             self.container_widget.setFixedWidth(300)
@@ -80,6 +81,7 @@ class MobileView(QWidget):
             screen_height = screen.height()
 
             container_height = int(screen_height * 0.7)
+
             self.container_widget.setFixedHeight(container_height)
 
             self.container_widget.setStyleSheet("""
@@ -91,6 +93,7 @@ class MobileView(QWidget):
                     padding: 10px;
                 }
             """)
+            
             self.container_layout = QVBoxLayout()
             self.container_layout.setSpacing(0)
             self.container_widget.setLayout(self.container_layout)
@@ -347,7 +350,7 @@ class MobileView(QWidget):
             self.tree_widget.setStyleSheet("border:none;")
             self.container_layout.addWidget(self.tree_widget)
             self.tree_widget.hide()
-
+            
             self.set_border_color(None)  
 
             self.web_view.page().profile().downloadRequested.connect(self.handle_download)
@@ -426,6 +429,19 @@ class MobileView(QWidget):
         except Exception as e:
             print(f"Failed to load preview: {e}")
             self.web_view.setHtml("<html><body><h1>Failed to load preview</h1></body></html>")
+
+    def load_bookmark_preview(self, url:str):
+        try:
+            q_url = QUrl(url)
+            if not q_url.isValid():
+                raise ValueError("Invalid URL")
+            self.web_view.load(q_url)
+            self.url_display.setText(url)
+            print(f"Loading bookmark URL: {url}")
+        except Exception as e:
+            print(f"Failed to load bookmark preview: {e}")
+            self.web_view.setHtml("<html><body><h1>Failed to load bookmark preview</h1></body></html>")
+
 
 
 

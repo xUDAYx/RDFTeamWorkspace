@@ -68,6 +68,13 @@ class OpenProjectWizard(QWizard):
         self.selected_folder = None
         self.selected_folder_path = None
 
+        self.setButtonLayout([
+            QWizard.WizardButton.Stretch,
+            QWizard.WizardButton.BackButton,
+            QWizard.WizardButton.NextButton,
+            QWizard.WizardButton.CancelButton,
+        ])
+
     def on_folder_clicked(self, index: QModelIndex):
         self.selected_folder_path = self.model.filePath(index)
         self.selected_folder = self.selected_folder_path
