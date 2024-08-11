@@ -1,0 +1,1 @@
+pip install PyQt6 PyQt6-WebEngine PyQt6-QScintilla config chardet psutil qrcode[PIL] jsbeautifulsoup bs4

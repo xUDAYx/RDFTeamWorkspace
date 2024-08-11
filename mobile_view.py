@@ -1,4 +1,4 @@
-import os
+import os,sys
 import json
 import logging
 import webbrowser,subprocess
@@ -15,6 +15,8 @@ from PyQt6.QtGui import QIcon,QGuiApplication,QPixmap, QImage,QStandardItemModel
 from urllib.parse import quote
 from PyQt6.QtWebEngineCore import QWebEnginePage 
 from workers import QRCodeWorker, ClipboardWorker
+from BookMark import BookmarkApp
+
 
 
 class CustomDialog(QDialog):
@@ -164,6 +166,8 @@ class MobileView(QWidget):
                         margin-right: 2px;
                     }
                 """)        
+            self.bookmark_button.clicked.connect(self.open_bookmark_manager)
+
             self.QR_button = QPushButton("QR Code")
             self.QR_button.setStyleSheet("""
                     QPushButton {
@@ -559,6 +563,12 @@ class MobileView(QWidget):
         self.browser_opener.finished.disconnect(self.handle_browser_opened)
         self.browser_opener = None
 
+    def open_bookmark_manager(self):
+        try:
+            # Run the bookmark.py script using subprocess
+            subprocess.Popen([sys.executable, "bookmark.py"])
+        except Exception as e:
+            print(f"Failed to open bookmark manager: {e}")
 class BrowserOpener(QThread):
     finished = pyqtSignal()
 

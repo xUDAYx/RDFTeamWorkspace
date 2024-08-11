@@ -1,11 +1,24 @@
 import sys
+import traceback
 import subprocess
 from PyQt6.QtWidgets import QApplication, QMessageBox
 from PyQt6.QtCore import QCoreApplication
 from code_editor import CodeEditor
-
 import os
 import psutil
+
+# Custom exception hook for detailed error reporting
+def excepthook(exc_type, exc_value, exc_traceback):
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+    print("Unhandled exception:", exc_type, exc_value)
+    traceback.print_tb(exc_traceback)
+    QMessageBox.critical(None, "Unhandled Exception", f"An error occurred: {exc_value}")
+    cleanup()  # Ensure cleanup is called in case of an exception
+
+# Install the custom exception hook
+sys.excepthook = excepthook
 
 def is_apache_running():
     for proc in psutil.process_iter(['pid', 'name']):
@@ -27,10 +40,8 @@ def start_xampp():
 def cleanup():
     print("Performing cleanup tasks...")
     # Add any additional cleanup tasks here if needed
-    # psutil does not require special cleanup, but this is where you would do it if needed
 
 if __name__ == "__main__":
-    # Start XAMPP control panel
     try:
         app = QApplication(sys.argv)
         editor = CodeEditor()
@@ -45,4 +56,3 @@ if __name__ == "__main__":
     except Exception as e:
         QMessageBox.warning(None, "Error", f"Error running application: {e}")
         cleanup()  # Ensure cleanup is called in case of an exception
-    
