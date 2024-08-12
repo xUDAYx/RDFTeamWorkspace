@@ -481,20 +481,26 @@ class MobileView(QWidget):
     def handle_download(self, download):
         try:
             # Choose the default directory and file path
-            default_path = os.path.join(os.path.expanduser('~'), download.path().split('/')[-1])
+            default_directory = os.path.expanduser('~')  # Default to the user's home directory
+            default_filename = download.downloadFileName()  # Get the default file name from the download request
 
             # Display the save file dialog
-            file_path, _ = QFileDialog.getSaveFileName(self, "Save File", default_path)
+            file_path, _ = QFileDialog.getSaveFileName(self, "Save File", os.path.join(default_directory, default_filename))
 
             # If the user cancels the dialog, file_path will be empty
             if file_path:
-                # Set the path where the file will be saved
-                download.setPath(file_path)
+                # Set the download directory and file name
+                download.setDownloadDirectory(os.path.dirname(file_path))
+                download.setDownloadFileName(os.path.basename(file_path))
 
                 # Accept the download request
                 download.accept()
+            else:
+                # If the user cancels the dialog, reject the download request
+                download.cancel()
         except Exception as e:
             print(f"Error handling download: {e}")
+
 
     def web_view_back(self):
         self.web_view.back()
