@@ -5,6 +5,7 @@ import logging,chardet
 import traceback
 from ftplib import FTP,error_perm
 import time
+import shutil
 
 from pc_view import PCView
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -163,48 +164,48 @@ class CustomCodeEditor(QsciScintilla):
                 return
         super().keyPressEvent(event)
     
-    def find_text(self, text):
-        self.search_text = text
-        self.current_search_pos = 0
-        self.find_next()
+    # def find_text(self, text):
+    #     self.search_text = text
+    #     self.current_search_pos = 0
+    #     self.find_next()
 
-    def find_next(self):
-        if self.search_text:
-            self.current_search_pos = self.findFirst(
-                self.search_text, False, False, False, True, self.current_search_pos
-            )
-            if self.current_search_pos == -1:
-                self.current_search_pos = 0
+    # def find_next(self):
+    #     if self.search_text:
+    #         self.current_search_pos = self.findFirst(
+    #             self.search_text, False, False, False, True, self.current_search_pos
+    #         )
+    #         if self.current_search_pos == -1:
+    #             self.current_search_pos = 0
 
-    def find_previous(self):
-        if self.search_text:
-            self.current_search_pos = self.findFirst(
-                self.search_text, False, False, False, True, self.current_search_pos - 1, -1
-            )
-            if self.current_search_pos == -1:
-                self.current_search_pos = self.length()
+    # def find_previous(self):
+    #     if self.search_text:
+    #         self.current_search_pos = self.findFirst(
+    #             self.search_text, False, False, False, True, self.current_search_pos - 1, -1
+    #         )
+    #         if self.current_search_pos == -1:
+    #             self.current_search_pos = self.length()
 
-    def replace(self, text):
-        try:
-            if self.search_text:
-                self.replaceSelectedText(text)
-                self.find_next()
-        except Exception as e:
-            QMessageBox.Warning(self,"replace error",f"error in replace{e}")
+    # def replace(self, text):
+    #     try:
+    #         if self.search_text:
+    #             self.replaceSelectedText(text)
+    #             self.find_next()
+    #     except Exception as e:
+    #         QMessageBox.Warning(self,"replace error",f"error in replace{e}")
 
-    def replace_all(self, find_text, replace_text):
-        try:
-            self.beginUndoAction()
-            pos = 0
-            while True:
-                pos = self.findFirst(find_text, False, False, False, True, pos)
-                if pos == -1:
-                    break
-                self.replaceSelectedText(replace_text)
-                pos += len(replace_text)
-            self.endUndoAction()
-        except Exception as e:
-            QMessageBox.Warning(self,"replace all error",f"error in replace all{e}")
+    # def replace_all(self, find_text, replace_text):
+    #     try:
+    #         self.beginUndoAction()
+    #         pos = 0
+    #         while True:
+    #             pos = self.findFirst(find_text, False, False, False, True, pos)
+    #             if pos == -1:
+    #                 break
+    #             self.replaceSelectedText(replace_text)
+    #             pos += len(replace_text)
+    #         self.endUndoAction()
+    #     except Exception as e:
+    #         QMessageBox.Warning(self,"replace all error",f"error in replace all{e}")
         
 class CodeEditor(QMainWindow):
     def __init__(self):
@@ -257,6 +258,11 @@ class CodeEditor(QMainWindow):
             self.create_file_action.triggered.connect(self.project_view.create_new_file)
             self.save_action = QAction("Save     Ctrl+S ", self)
             self.save_action.triggered.connect(self.save_file)
+            self.save_as_action = QAction("Save As", self)
+            self.save_as_action.triggered.connect(self.save_as)
+            self.export_action = QAction("Export Project", self)
+            self.export_action.triggered.connect(self.export_project)
+
 
             project_menu.addAction(self.open_project_action)
             self.addAction(self.open_project_action)
@@ -264,6 +270,8 @@ class CodeEditor(QMainWindow):
             project_menu.addAction(self.create_file_action)
             project_menu.addAction(self.save_action)
             project_menu.addAction(self.ref_view_action)
+            project_menu.addAction(self.save_as_action)
+            project_menu.addAction(self.export_action)
 
             # Create a Project button with the project menu
             project_button = QToolButton(self)
@@ -376,7 +384,73 @@ class CodeEditor(QMainWindow):
             logging.error(f"Error initializing CodeEditor: {e}")
             
             
-    
+    def save_as(self):
+        try:
+            # Get the current project's directory from the ProjectView
+            current_project_path = self.project_view.path_line_edit.text()
+            
+            # Open a dialog to select the directory where the user wants to save the project
+            new_folder_path = QFileDialog.getSaveFileName(
+                self, "Save Folder As", current_project_path, "Directories (*)"
+            )[0]
+
+            if new_folder_path:
+                # If the user provides a file name, it may include an extension (e.g., .txt).
+                # We need to strip the extension to get just the folder name.
+                new_folder_path = os.path.splitext(new_folder_path)[0]
+
+                # Ensure the new folder name does not exist; if it does, we need to remove it
+                if os.path.exists(new_folder_path):
+                    shutil.rmtree(new_folder_path)
+
+                # Copy the entire project directory to the new location
+                shutil.copytree(current_project_path, new_folder_path)
+
+                # Update the project view or any other relevant UI component
+                self.project_view.update_project_view(new_folder_path)
+
+                # Log the operation in the terminal
+                terminal = self.findChild(TerminalWidget)
+                if terminal:
+                    terminal.write(f"Saved project folder as: {new_folder_path}\n")
+            else:
+                terminal = self.findChild(TerminalWidget)
+                if terminal:
+                    terminal.write("Save As operation was canceled.\n")
+        except Exception as e:
+            print(f"Error saving folder as: {e}")
+            logging.error(f"Error saving folder as: {e}")
+
+    def export_project(self):
+        try:
+            # Get the current project's directory from the ProjectView
+            current_project_path = self.project_view.path_line_edit.text()
+            project_name = os.path.basename(current_project_path)
+
+            # Open a dialog to select where the ZIP file should be saved
+            zip_file_path, _ = QFileDialog.getSaveFileName(
+                self, "Export as ZIP", os.path.join(current_project_path, project_name), "ZIP Files (*.zip);;All Files (*)"
+            )
+
+            if zip_file_path:
+                # Ensure the selected file has a .zip extension
+                if not zip_file_path.endswith(".zip"):
+                    zip_file_path += ".zip"
+
+                # Create a ZIP file from the project folder
+                shutil.make_archive(os.path.splitext(zip_file_path)[0], 'zip', current_project_path)
+
+                # Log the operation in the terminal
+                terminal = self.findChild(TerminalWidget)
+                if terminal:
+                    terminal.write(f"Exported project as ZIP: {zip_file_path}\n")
+            else:
+                terminal = self.findChild(TerminalWidget)
+                if terminal:
+                    terminal.write("Export operation was canceled.\n")
+        except Exception as e:
+            print(f"Error exporting project as ZIP: {e}")
+            logging.error(f"Error exporting project as ZIP: {e}")
     def toggle_ref_view(self, checked):
         if checked:
             self.ref_view.toggle_stay_on_top(True)
@@ -549,9 +623,7 @@ class CodeEditor(QMainWindow):
             editor.setFont(QFont("Consolas", 12))
             terminal = TerminalWidget()
 
-            find_button = QPushButton("find")
-            find_button.clicked.connect(lambda:self.show_find_replace_dialog(editor))
-            find_button.setStyleSheet("background-color:#f0f0f0;border-radius:5px;padding:4px 10px;border:1px solid #ccc")
+            
             
             publish_button = QPushButton("Upload")
             publish_button.setStyleSheet("background-color:red;color:white;font-weight:bold;border-radius:5px;padding:5px 10px")
@@ -569,7 +641,7 @@ class CodeEditor(QMainWindow):
 
             search_tab_layout = QHBoxLayout()
             search_tab_layout.addStretch()
-            search_tab_layout.addWidget(find_button)
+            
             search_tab_layout.addWidget(publish_button)
             search_tab_layout.addWidget(format_button)  # Add the format button to the layout
             layout.addLayout(search_tab_layout)
@@ -828,15 +900,7 @@ class CodeEditor(QMainWindow):
             logging.error(f"Error restarting application: {e}")
 
 
-    def eventFilter(self, obj, event):
-        try:
-            if event.type() == event.Type.KeyPress:
-                if event.key() == Qt.Key.Key_F and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
-                    self.show_find_replace_dialog()
-        except Exception as e:
-            QMessageBox.warning(self, "Error", f"Failed to handle event: {e}")
-            logging.error(f"Failed to handle event: {e}")
-        return super().eventFilter(obj, event)
+    
     
             
 
