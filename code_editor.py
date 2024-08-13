@@ -9,7 +9,7 @@ import shutil
 
 from pc_view import PCView
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-from PyQt6.QtGui import QSyntaxHighlighter
+from PyQt6.QtGui import QSyntaxHighlighter,QIcon
 from PyQt6.Qsci import QsciDocument
 from PyQt6.QtWidgets import  QDialog,QPlainTextEdit, QProgressBar,QInputDialog,QLabel, QMainWindow,QLineEdit,QMenu, QVBoxLayout, QWidget, QSplitter, QDialogButtonBox, QTreeView, QToolBar, QFileDialog, QToolButton, QTabWidget, QApplication, QMessageBox, QPushButton, QTextEdit, QScrollBar, QHBoxLayout, QSizePolicy
 from PyQt6.QtGui import  QTextCharFormat,QAction, QPixmap, QFileSystemModel, QIcon, QFont, QPainter, QColor, QTextFormat, QTextCursor, QKeySequence, QShortcut
@@ -214,6 +214,9 @@ class CodeEditor(QMainWindow):
             self.setWindowTitle("RDF STUDIO")
             self.showMaximized()
             self.setWindowFlags(Qt.WindowType.Window)
+
+            self.setWindowIcon(QIcon(r"E:\RDFTeamWorkspace\icon\rdf_icon.ico"))
+            
             self.setGeometry(100, 100, 800, 600)
             self.pc_view = PCView()
             self.mobile_view = MobileView()
@@ -232,6 +235,8 @@ class CodeEditor(QMainWindow):
             self.central_widget = QWidget()
             self.central_widget.setLayout(self.main_layout)
             self.setCentralWidget(self.central_widget)
+
+            self.base_dir = getattr(sys, '_MEIPASS', os.getcwd())
 
             self.codeEditor = CustomCodeEditor()
             self.hScrollBar = QScrollBar(Qt.Orientation.Horizontal)
@@ -366,7 +371,7 @@ class CodeEditor(QMainWindow):
             self.current_file_path = None
             self.project_view.show()
 
-            self.rules_directory = os.path.join(os.getcwd(), 'rules')
+            self.rules_directory = os.path.join(self.base_dir, 'rules')
             self.rules = {
                 "UI": os.path.join(self.rules_directory, "rules_ui.json"),
                 "Data": os.path.join(self.rules_directory, "rules_json.json"),

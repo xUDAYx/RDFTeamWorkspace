@@ -19,6 +19,14 @@ from workers import QRCodeWorker, ClipboardWorker
 from BookMark import BookmarkWizard
 
 
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        base_path = sys._MEIPASS
+    except AttributeError:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
 
 class CustomDialog(QDialog):
     def __init__(self, message, parent=None):
@@ -72,6 +80,9 @@ class MobileView(QWidget):
             super().__init__(parent)
             self.layout = QVBoxLayout()
             self.setLayout(self.layout)
+
+            self.bookmark_wizard = BookmarkWizard()
+            self.bookmark_wizard.urlClicked.connect(self.load_bookmark_preview)
             
             # Create a container widget for the web view
             self.container_widget = QWidget()
@@ -133,7 +144,7 @@ class MobileView(QWidget):
             icon_size = 25  # Define the icon size
 
             self.back_button = QPushButton()
-            self.back_button.setIcon(QIcon("images/back_button.png"))
+            self.back_button.setIcon(QIcon(resource_path("images/back_button.png")))
             self.back_button.setToolTip("Back")
             self.back_button.setIconSize(QSize(icon_size, icon_size))
             self.back_button.setFixedSize(icon_size + 10, icon_size + 10)
@@ -141,7 +152,7 @@ class MobileView(QWidget):
             self.back_button.clicked.connect(self.web_view_back)
 
             self.forward_button = QPushButton()
-            self.forward_button.setIcon(QIcon("images/forward_button.png"))
+            self.forward_button.setIcon(QIcon(resource_path("images/forward_button.png")))
             self.forward_button.setIconSize(QSize(icon_size, icon_size))
             self.forward_button.setFixedSize(icon_size + 10, icon_size + 10)
             self.forward_button.setStyleSheet("border: none;")
@@ -149,7 +160,7 @@ class MobileView(QWidget):
             self.forward_button.clicked.connect(self.web_view_forward)
 
             self.reload_button = QPushButton()
-            self.reload_button.setIcon(QIcon("images/reload.png"))
+            self.reload_button.setIcon(QIcon(resource_path("images/reload.png")))
             self.reload_button.setIconSize(QSize(icon_size, icon_size))
             self.reload_button.setFixedSize(icon_size + 10, icon_size + 10)
             self.reload_button.setStyleSheet("border: none;")
@@ -587,10 +598,12 @@ class MobileView(QWidget):
 
     def open_bookmark_manager(self):
         try:
-            # Run the bookmark.py script using subprocess
-            subprocess.Popen([sys.executable, "bookmark.py"])
+            # Open the bookmark wizard/dialog
+            self.bookmark_wizard = BookmarkWizard()
+            self.bookmark_wizard.exec()
+
         except Exception as e:
-            print(f"Failed to open bookmark manager: {e}")
+            QMessageBox.warning(self, "Error", f"Failed to open bookmark manager: {e}")
 class BrowserOpener(QThread):
     finished = pyqtSignal()
 

@@ -1,6 +1,7 @@
 import sys
 import traceback
 import subprocess
+from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication, QMessageBox
 from PyQt6.QtCore import QCoreApplication
 from code_editor import CodeEditor
@@ -46,6 +47,7 @@ if __name__ == "__main__":
         app = QApplication(sys.argv)
         editor = CodeEditor()
         editor.show()
+        app.setWindowIcon(QIcon(r"E:\RDFTeamWorkspace\icon\rdf_icon.ico"))
 
         start_xampp()
         

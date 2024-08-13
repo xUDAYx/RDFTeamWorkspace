@@ -1,3 +1,4 @@
+
 import sys
 from PyQt6.QtWidgets import (
     QApplication, QWizard, QWizardPage, QVBoxLayout, QLabel, QPushButton,
@@ -85,6 +86,7 @@ class OpenProjectWizard(QWizard):
     def select_folder(self):
         if self.selected_folder:
             self.project_opened.emit(self.selected_folder)
+            print(f"emitted signal{self.selected_folder}")
             self.accept()  # Accept and close the wizard
         else:
             QMessageBox.warning(self, "No Folder Selected", "Please select a folder from the list.")
@@ -94,5 +96,3 @@ if __name__ == "__main__":
     wizard = OpenProjectWizard()
     wizard.show()
     sys.exit(app.exec())
-
-    

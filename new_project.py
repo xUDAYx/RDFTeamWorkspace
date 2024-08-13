@@ -315,9 +315,18 @@ class NewProjectWizard(QWizard):
             event.ignore()
 
     def get_sample_projects(self):
-        sample_dir = r'D:\RDF_STUDIO\project_templates'
+    # Determine the base path
+        if hasattr(sys, '_MEIPASS'):
+            base_path = sys._MEIPASS
+        else:
+            base_path = os.path.abspath(".")  # Current working directory in development
+
+        # Path to the project_templates directory
+        sample_dir = os.path.join(base_path, "project_templates")
+
         if os.path.exists(sample_dir):
             return [name for name in os.listdir(sample_dir) if os.path.isdir(os.path.join(sample_dir, name))]
+        
         return []
 
     def update_sample_projects(self):
@@ -328,14 +337,22 @@ class NewProjectWizard(QWizard):
     def update_ui_file_combo(self, index):
         if index > 0:
             project_name = self.sample_project_combo.itemText(index)
-            project_path = os.path.join('project_templates', project_name,'RDF_UI')
-            ui_files = [f for f in os.listdir(project_path) if f.endswith('UI.php')]
+            base_dir = getattr(sys, '_MEIPASS', os.path.dirname(__file__))  # Handle file paths in executable
+            project_path = os.path.join(base_dir, 'project_templates', project_name, 'RDF_UI')
 
-            self.ui_file_combo.clear()
-            self.ui_file_combo.addItem("-- Select UI File --")
-            self.ui_file_combo.addItems(ui_files)
+            # Check if the project path exists before listing files
+            if os.path.exists(project_path) and os.path.isdir(project_path):
+                ui_files = [f for f in os.listdir(project_path) if f.endswith('UI.php')]
 
-            self.copy_project_button.setEnabled(True if ui_files else False)
+                self.ui_file_combo.clear()
+                self.ui_file_combo.addItem("-- Select UI File --")
+                self.ui_file_combo.addItems(ui_files)
+
+                self.copy_project_button.setEnabled(True if ui_files else False)
+            else:
+                self.ui_file_combo.clear()
+                self.ui_file_combo.addItem("-- Select UI File --")
+                self.copy_project_button.setEnabled(False)
         else:
             self.ui_file_combo.clear()
             self.ui_file_combo.addItem("-- Select UI File --")
@@ -350,12 +367,26 @@ class NewProjectWizard(QWizard):
                 self.mobile_view.setHtml("<html><body><p>No content available</p></body></html>")
                 return
 
+            # Determine the base directory for project templates
+            if getattr(sys, 'frozen', False):
+                # If running from a PyInstaller bundle
+                base_dir = sys._MEIPASS
+            else:
+                # If running in a normal Python environment
+                base_dir = os.path.dirname(__file__)
+
             # Construct the UI file path
-            project_templates_dir = os.path.join(os.path.dirname(__file__), 'project_templates')
+            project_templates_dir = os.path.join(base_dir, 'project_templates')
             ui_file_path = os.path.join(project_templates_dir, selected_project, "RDF_UI", selected_ui_file)
 
-            # Check if the directory exists before attempting to access the file
-            if os.path.exists(os.path.dirname(ui_file_path)):
+            # Debugging information
+            print(f"Base directory: {base_dir}")
+            print(f"Project templates directory: {project_templates_dir}")
+            print(f"UI file path: {ui_file_path}")
+
+            # Check if the directory and file exist before attempting to access it
+            ui_dir = os.path.dirname(ui_file_path)
+            if os.path.exists(ui_dir) and os.path.isfile(ui_file_path):
                 with open(ui_file_path, 'r', encoding='utf-8') as ui_file:
                     html_content = ui_file.read()
                 self.mobile_view.setHtml(html_content)
@@ -366,6 +397,7 @@ class NewProjectWizard(QWizard):
             print(f"An error occurred while updating the mobile view: {e}")
             
     def reset_wizard(self):
+        self.setCurrentId(0)
         self.sample_project_combo.setCurrentIndex(0)
         self.copy_project_name_input.clear()
         self.project_name_input.clear()
@@ -413,6 +445,7 @@ class NewProjectWizard(QWizard):
         is_complete = bool(project_name)
         self.create_project_button.setEnabled(is_complete)
 
+    
     def create_new_project(self):
         try:
             destination_dir = r'C:\xampp\htdocs\RDFProjects_ROOT'
@@ -442,22 +475,23 @@ class NewProjectWizard(QWizard):
             if ok and ui_file_name:
                 ui_file_path = os.path.join(dest_dir, "RDF_UI", f"{ui_file_name}UI.php")
                 with open(ui_file_path, 'w') as ui_file:
-                                    ui_file.write("""
-                                    <table class="section">
-                                        <tr>
-                                            <th>Header 1</th>
-                                            <th>Header 2</th>
-                                        </tr>
-                                        <tr>
-                                            <td>Row 1, Cell 1</td>
-                                            <td>Row 1, Cell 2</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Row 2, Cell 1</td>
-                                            <td>Row 2, Cell 2</td>
-                                        </tr>
-                                    </table>
-                                    """)
+                    ui_file.write("""
+                    <table class="section">
+                        <tr>
+                            <th>Header 1</th>
+                            <th>Header 2</th>
+                        </tr>
+                        <tr>
+                            <td>Row 1, Cell 1</td>
+                            <td>Row 1, Cell 2</td>
+                        </tr>
+                        <tr>
+                            <td>Row 2, Cell 1</td>
+                            <td>Row 2, Cell 2</td>
+                        </tr>
+                    </table>
+                    """)
+
                 # Create a default ProjectInfo.json file with UI file name
                 project_info = {
                     "init": f"{ui_file_name}UI.php"
@@ -466,8 +500,13 @@ class NewProjectWizard(QWizard):
                 with open(os.path.join(dest_dir, "ProjectInfo.json"), 'w') as file:
                     json.dump(project_info, file, indent=4)
 
-                # Copy RDFView.php file from template
-                template_path = os.path.join("project_templates", "RDFView.php")
+                # Determine the correct path for RDFView.php
+                if hasattr(sys, '_MEIPASS'):
+                    base_path = sys._MEIPASS
+                else:
+                    base_path = os.path.abspath(".")
+                
+                template_path = os.path.join(base_path, "project_templates", "RDFView.php")
                 dest_path = os.path.join(dest_dir, "RDFView.php")
                 shutil.copy(template_path, dest_path)
 

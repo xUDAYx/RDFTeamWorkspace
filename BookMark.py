@@ -1,12 +1,21 @@
 import json
 import os
+import sys
 from PyQt6.QtCore import pyqtSignal, Qt, QModelIndex
 from PyQt6.QtGui import QStandardItemModel, QStandardItem
 from PyQt6.QtWidgets import (
     QApplication, QWizard, QTreeView, QVBoxLayout, QWizardPage, QLineEdit, QPushButton, QAbstractItemView
 )
 import webbrowser
-import sys
+
+# Determine base path for file operations
+if hasattr(sys, '_MEIPASS'):
+    base_path = sys._MEIPASS  # Path where the EXE is extracted to
+else:
+    base_path = os.path.abspath(".")
+
+# Define the path for bookmarks.json
+bookmarks_path = os.path.join(base_path, "bookmarks.json")
 
 class BookmarkWizard(QWizard):
     urlClicked = pyqtSignal(str)  # Custom signal to emit URL when clicked
@@ -104,15 +113,15 @@ class BookmarkWizard(QWizard):
 
     def save_bookmarks(self):
         try:
-            with open("bookmarks.json", "w") as file:
+            with open(bookmarks_path, "w") as file:
                 json.dump(self.bookmarks, file, indent=4)
         except Exception as e:
             print(f"Error saving bookmarks: {e}")
 
     def load_bookmarks(self):
-        if os.path.exists("bookmarks.json"):
+        if os.path.exists(bookmarks_path):
             try:
-                with open("bookmarks.json", "r") as file:
+                with open(bookmarks_path, "r") as file:
                     data = json.load(file)
                     if isinstance(data, list) and all(isinstance(entry, list) and len(entry) == 3 for entry in data):
                         self.bookmarks = [(int(entry[0]), entry[1], entry[2]) for entry in data]
@@ -124,10 +133,10 @@ class BookmarkWizard(QWizard):
                 print(f"Error loading bookmarks: {e}")
                 self.bookmarks = []
                 self.update_bookmark_tree()
-                
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     bookmark_wizard = BookmarkWizard()
     bookmark_wizard.show()
     sys.exit(app.exec())
+

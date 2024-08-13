@@ -7,12 +7,20 @@ from PyQt6.Qsci import QsciScintilla, QsciLexerPython, QsciLexerHTML, QsciLexerJ
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 import os
 import json
-import re
+import re,sys
 import shutil
 from pathlib import Path
 import config
 
 CURRENT_PROJECT_PATH = None
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        base_path = sys._MEIPASS
+    except AttributeError:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
 
 def find_files(file_contents, pattern):
     try:
@@ -292,6 +300,10 @@ class ProjectView(QWidget):
         # Create the main layout
         layout = QVBoxLayout()
         self.setLayout(layout)
+
+        # Determine the base directory for file paths
+        self.base_dir = getattr(sys, '_MEIPASS', os.getcwd())
+        self.rules_path = os.path.join(self.base_dir, 'rules')
 
         # Create the "Select Workspace" button and QLineEdit
         button_layout = QHBoxLayout()
@@ -872,7 +884,10 @@ class ProjectView(QWidget):
             
     
 
-    def initialize_validator(self, rules_path="rules"):
+    def initialize_validator(self, rules_path=None):
+        if rules_path is None:
+            rules_path = self.rules_path
+
         try:
             project_path = config.CURRENT_PROJECT_PATH
             if not project_path:
@@ -892,8 +907,11 @@ class ProjectView(QWidget):
             QMessageBox.warning(self, "Error", f"Failed to initialize validator: {e}")
 
     def read_rules(self, file):
-        with open(file, 'r') as f:
-            return json.load(f)
+        try:
+            with open(file, 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Failed to read rules file: {e}")
 
     def collect_rules(self, rules_path):
         try:
@@ -902,7 +920,7 @@ class ProjectView(QWidget):
                 rule_path = os.path.join(rules_path, rule_file)
                 rules_dict[rule_file] = self.read_rules(rule_path)
             return rules_dict
-        except Exception as e:          
+        except Exception as e:
             QMessageBox.warning(self, "Error", f"Failed to collect rules: {e}")
 
     def collect_files_to_validate(self, project_path):
@@ -1152,7 +1170,7 @@ class ProjectView(QWidget):
             QMessageBox.warning(self, "No UI File Selected", "Please select a UI file to merge.")
             return
 
-        src_file = os.path.join('sample_ui', selected_ui_file)
+        src_file = resource_path(os.path.join('sample_ui', selected_ui_file))
         dst_dir = os.path.join(project_path, 'RDF_UI')
         os.makedirs(dst_dir, exist_ok=True)
         dst_file = os.path.join(dst_dir, selected_ui_file)
@@ -1163,11 +1181,12 @@ class ProjectView(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Error", f"An error occurred while merging the UI file: {str(e)}")
 
+
     def load_sample_ui_files(self):
         """
         Loads sample UI files from the 'sample_ui' directory into the list widget.
         """
-        sample_ui_dir = os.path.join(os.getcwd(), 'sample_ui')
+        sample_ui_dir = resource_path('sample_ui')
         if not os.path.exists(sample_ui_dir):
             os.makedirs(sample_ui_dir)
 
@@ -1183,10 +1202,12 @@ class ProjectView(QWidget):
         if selected_ui_file == "-- Select UI File --":
             return
 
-        sample_ui_dir = 'sample_ui'
+        sample_ui_dir = resource_path('sample_ui')
         file_path = os.path.join(sample_ui_dir, selected_ui_file)
 
         if os.path.exists(file_path):
             with open(file_path, 'r') as file:
                 html_content = file.read()
                 self.mobile_view.setHtml(html_content)
+
+   
