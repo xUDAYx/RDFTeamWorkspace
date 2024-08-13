@@ -1,5 +1,4 @@
 import sys
-
 import traceback
 import subprocess
 from PyQt6.QtWidgets import QApplication, QMessageBox
