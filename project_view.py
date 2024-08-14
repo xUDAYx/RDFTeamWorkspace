@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QApplication,QWidget, QVBoxLayout,QScrollArea, QTableWidget, QPushButton, QFileDialog, QTableWidgetItem, QHeaderView, QLineEdit, QHBoxLayout,QLabel,QMessageBox,QMenu,QInputDialog, QDialog, QComboBox
+from PyQt6.QtWidgets import QApplication,QWidget, QVBoxLayout,QScrollArea, QTableWidget, QPushButton,QListWidget, QFileDialog, QTableWidgetItem, QHeaderView, QLineEdit, QHBoxLayout,QLabel,QMessageBox,QMenu,QInputDialog, QDialog, QComboBox
 from PyQt6.QtCore import Qt, QDir, pyqtSignal, QUrl
 from PyQt6.QtGui import QMouseEvent,QAction
 
@@ -1101,17 +1101,15 @@ class ProjectView(QWidget):
         # UI File Selection and Mobile View Layout
         ui_mobile_layout = QHBoxLayout()
 
-        # UI File Selection
+        # UI File Selection using QListWidget
         ui_file_layout = QVBoxLayout()
         ui_file_label = QLabel("Select UI File:")
-        ui_file_combo = QComboBox()
-        ui_file_combo.addItem("-- Select UI File --")
-        self.populate_ui_files(ui_file_combo)
+        ui_file_list = QListWidget()
+        self.populate_ui_files(ui_file_list)  # Populate QListWidget with UI files
         ui_file_layout.addWidget(ui_file_label)
-        ui_file_layout.addWidget(ui_file_combo)
+        ui_file_layout.addWidget(ui_file_list)
         ui_file_layout.addStretch()
         ui_mobile_layout.addLayout(ui_file_layout)
-
 
         # Mobile View for UI File Preview
         self.mobile_view = QWebEngineView()
@@ -1124,16 +1122,15 @@ class ProjectView(QWidget):
         # Buttons Layout
         buttons_layout = QVBoxLayout()
 
-
         # Merge Button
         merge_button = QPushButton("Merge UI Files")
-        merge_button.clicked.connect(lambda: self.merge_ui_files(ui_file_combo))
+        merge_button.clicked.connect(lambda: self.merge_ui_files(ui_file_list))
         buttons_layout.addWidget(merge_button)
 
         main_layout.addLayout(buttons_layout)
 
-        # Connect the UI file combo selection change to update the mobile view
-        ui_file_combo.currentIndexChanged.connect(lambda: self.update_mobile_view(ui_file_combo.currentText()))
+        # Connect the UI file list selection change to update the mobile view
+        ui_file_list.currentItemChanged.connect(lambda: self.update_mobile_view(ui_file_list.currentItem().text() if ui_file_list.currentItem() else ""))
 
         # Apply modern CSS styles
         dialog.setStyleSheet("""
@@ -1144,7 +1141,7 @@ class ProjectView(QWidget):
             QLabel {
                 font-size: 16px;
             }
-            QComboBox {
+            QListWidget {
                 padding: 8px;
                 font-size: 14px;
                 border: 1px solid #cccccc;
@@ -1167,20 +1164,9 @@ class ProjectView(QWidget):
 
         dialog.exec()
 
-    def resource_path(relative_path):
-        """ Get absolute path to resource, works for development and for PyInstaller """
-        try:
-            # PyInstaller creates a temp folder and stores path in _MEIPASS
-            base_path = sys._MEIPASS
-        except Exception:
-            base_path = os.path.abspath(".")
-
-        return os.path.join(base_path, relative_path)
-
-
-    def populate_ui_files(self, ui_file_combo):
+    def populate_ui_files(self, ui_file_list):
         """
-        Populates the combo box with UI files from the 'C:/xampp/htdocs/RDFProjects_ROOT/RDF_UIProjects' directory.
+        Populates the QListWidget with UI files from the 'C:/xampp/htdocs/RDFProjects_ROOT/RDF_UIProjects' directory.
         """
         ui_files_dir = 'C:/xampp/htdocs/RDFProjects_ROOT/RDF_UIProjects'
         if not os.path.exists(ui_files_dir):
@@ -1188,11 +1174,13 @@ class ProjectView(QWidget):
             return
 
         ui_files = [f for f in os.listdir(ui_files_dir) if f.endswith('.php')]
-        ui_file_combo.clear()
-        ui_file_combo.addItem("-- Select UI File --")
-        ui_file_combo.addItems(ui_files)
+        ui_file_list.clear()
+        ui_file_list.addItems(ui_files)
 
-    def merge_ui_files(self, ui_file_combo):
+    def merge_ui_files(self, ui_file_list):
+        if not hasattr(self, 'folder_path') or not self.folder_path:
+                QMessageBox.warning(self, "Project Not Opened", "Open a project first to merge UI files")
+                return
         """
         Merges the selected UI file into the RDF_UI folder of the current project.
         """
@@ -1201,8 +1189,8 @@ class ProjectView(QWidget):
             QMessageBox.warning(self, "Project Not Opened", "Open a project first to merge UI files.")
             return
 
-        selected_ui_file = ui_file_combo.currentText()
-        if selected_ui_file == "-- Select UI File --":
+        selected_ui_file = ui_file_list.currentItem().text() if ui_file_list.currentItem() else ""
+        if not selected_ui_file:
             QMessageBox.warning(self, "No UI File Selected", "Please select a UI file to merge.")
             return
 
@@ -1217,22 +1205,8 @@ class ProjectView(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Error", f"An error occurred while merging the UI file: {str(e)}")
 
-    def load_sample_ui_files(self):
-        """
-        Loads sample UI files from the 'C:/xampp/htdocs/RDFProjects_ROOT/RDF_UIProjects' directory into the list widget.
-        """
-        sample_ui_dir = resource_path('C:/xampp/htdocs/RDFProjects_ROOT/RDF_UIProjects')
-        if not os.path.exists(sample_ui_dir):
-            QMessageBox.warning(self, "Directory Not Found", f"Directory '{sample_ui_dir}' not found.")
-            return
-
-        self.file_list.clear()
-        for file_name in os.listdir(sample_ui_dir):
-            if file_name.endswith(".php"):
-                self.file_list.addItem(file_name)
-
     def update_mobile_view(self, selected_ui_file):
-        if selected_ui_file == "-- Select UI File --":
+        if not selected_ui_file:
             return
 
         # Ensure the selected file has the correct extension
@@ -1249,8 +1223,6 @@ class ProjectView(QWidget):
                     html_content = file.read()
                     self.mobile_view.setHtml(html_content)
         except Exception as e:
-            print(f"error updating mobile view {e}")
-        else:
-            print(f"File not found: {file_path}") 
+            print(f"Error updating mobile view: {e}")
 
    
