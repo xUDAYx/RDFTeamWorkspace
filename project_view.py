@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QApplication,QWidget, QVBoxLayout,QScrollArea, QTableWidget, QPushButton,QListWidget, QFileDialog, QTableWidgetItem, QHeaderView, QLineEdit, QHBoxLayout,QLabel,QMessageBox,QMenu,QInputDialog, QDialog, QComboBox
+from PyQt6.QtWidgets import QApplication,QWidget, QWizard,QVBoxLayout,QScrollArea, QTableWidget,QProgressDialog, QPushButton,QListWidget, QFileDialog, QTableWidgetItem, QHeaderView, QLineEdit, QHBoxLayout,QLabel,QMessageBox,QMenu,QInputDialog, QDialog, QComboBox
 from PyQt6.QtCore import Qt, QDir, pyqtSignal, QUrl
 from PyQt6.QtGui import QMouseEvent,QAction
 
@@ -284,6 +284,88 @@ def get_all_file_names(directory):
             file_names.append(file)
     return file_names
 
+class CopyWizard(QWizard):
+    def __init__(self, copied_file_path, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Copy File to Project Folder")
+        self.setGeometry(300, 200, 500, 400)
+
+        self.copied_file_path = copied_file_path
+        self.addPage(self.createCopyPage())
+
+    def createCopyPage(self):
+        page = QWizardPage()
+        page.setTitle("Select Destination Project")
+
+        layout = QVBoxLayout()
+        # Search bar for filtering folders
+        self.search_bar = QLineEdit()
+        self.search_bar.setPlaceholderText("Search for a project folder...")
+        self.search_bar.textChanged.connect(self.filter_folders)
+        layout.addWidget(self.search_bar)
+
+        # List view for displaying folders
+        self.folder_list = QListWidget()
+        self.load_project_folders()
+        layout.addWidget(self.folder_list)
+
+        self.copy_button = QPushButton("Copy")
+        self.copy_button.clicked.connect(self.copy_file_to_selected_folder)
+        layout.addWidget(self.copy_button)
+
+        page.setLayout(layout)
+        return page
+    def filter_folders(self, text):
+        # Filter folder list based on the search bar text
+        for i in range(self.folder_list.count()):
+            item = self.folder_list.item(i)
+            item.setHidden(text.lower() not in item.text().lower())
+    def load_project_folders(self):
+        project_root_path = "C:/xampp/htdocs/RDFProjects_ROOT"
+        if os.path.exists(project_root_path):
+            for folder_name in os.listdir(project_root_path):
+                full_path = os.path.join(project_root_path, folder_name)
+                if os.path.isdir(full_path):
+                    self.folder_list.addItem(folder_name)
+
+    def get_target_folder(self, filename):
+        if filename.endswith('UI.php'):
+            return 'RDF_UI'
+        elif filename.endswith('Action.js'):
+            return 'RDF_ACTION'
+        elif filename.endswith('BW,php'):
+            return 'RDF_BW'
+        elif filename.endswith('BVO.php'):
+            return 'RDF_BVO'
+        elif filename.endswith('Data.php'):
+            return 'RDF_DATA'
+        return None
+
+    def copy_file_to_selected_folder(self):
+        selected_item = self.folder_list.currentItem()
+        if selected_item:
+            selected_folder = selected_item.text()
+            project_folder_path = os.path.join("C:/xampp/htdocs/RDFProjects_ROOT", selected_folder)
+            filename = os.path.basename(self.copied_file_path)
+            target_subfolder = self.get_target_folder(filename)
+
+            if target_subfolder:
+                destination_folder = os.path.join(project_folder_path, target_subfolder)
+                destination_path = os.path.join(destination_folder, filename)
+
+                if not os.path.exists(destination_folder):
+                    os.makedirs(destination_folder)
+
+                try:
+                    shutil.copy(self.copied_file_path, destination_path)
+                    QMessageBox.information(self, "Success", f"File '{filename}' copied to '{destination_folder}'")
+                    self.accept()
+                except Exception as e:
+                    QMessageBox.critical(self, "Error", f"Failed to copy file '{filename}': {e}")
+            else:
+                QMessageBox.warning(self, "Warning", f"File '{filename}' does not match any naming rules and was not copied.")
+        else:
+            QMessageBox.warning(self, "Warning", "No destination project folder selected.")
 
 class ProjectView(QWidget):
     file_double_clicked = pyqtSignal(str)
@@ -398,6 +480,10 @@ class ProjectView(QWidget):
         paste_action.triggered.connect(self.paste_file)
         self.context_menu.addAction(paste_action)
 
+        delete_action = QAction("Delete", self)
+        delete_action.triggered.connect(self.delete_file)
+        self.context_menu.addAction(delete_action)
+
     
     
     def show_context_menu(self, pos):
@@ -428,11 +514,110 @@ class ProjectView(QWidget):
             paste_action.triggered.connect(self.paste_file)
             self.context_menu.addAction(paste_action)
 
+            delete_action = QAction("Delete", self)
+            delete_action.triggered.connect(self.delete_file)
+            self.context_menu.addAction(delete_action)
 
             self.context_menu.exec(table.mapToGlobal(pos))
         elif item:
             # Right-click on table item
             self.context_menu.exec(table.mapToGlobal(pos))
+
+    def copy_file(self):
+        table = self.context_menu_table  # Use the stored table reference
+        current_item = table.currentItem()
+        if current_item:
+            current_file_name = current_item.text()
+            if table == self.table_view:
+                current_column = self.table_view.currentColumn()
+                folder_name = self.get_folder_name_from_column(current_column)
+                self.copied_file_path = os.path.join(self.path_line_edit.text(), folder_name, current_file_name)
+            elif table == self.unlinked_table:
+                current_column = self.unlinked_table.currentColumn()
+                folder_name = self.get_folder_name_from_column(current_column)
+                self.copied_file_path = os.path.join(self.path_line_edit.text(), folder_name, current_file_name)
+            else:
+                self.copied_file_path = os.path.join(self.path_line_edit.text(), current_file_name)
+            
+            if not os.path.exists(self.copied_file_path):
+                QMessageBox.critical(self, "Error", f"File does not exist: {self.copied_file_path}")
+            else:
+                self.open_copy_wizard()
+
+    def open_copy_wizard(self):
+        wizard = CopyWizard(self.copied_file_path, self)
+        wizard.exec()
+
+    def paste_file(self):
+        clipboard = QApplication.clipboard()
+        mime_data = clipboard.mimeData()
+
+        def get_target_folder(filename):
+            if filename.endswith('UI.php'):
+                return 'RDF_UI'
+            elif filename.endswith('Action.js'):
+                return 'RDF_ACTION'
+            elif filename.endswith('BW.php'):
+                return 'RDF_BW'
+            elif filename.endswith('BVO.php'):
+                return 'RDF_BVO'
+            elif filename.endswith('Data.json'):
+                return 'RDF_DATA'
+            return None
+
+        if mime_data.hasUrls():
+            for url in mime_data.urls():
+                source_path = url.toLocalFile()
+                filename = os.path.basename(source_path)
+                target_folder = get_target_folder(filename)
+
+                if target_folder:
+                    destination_folder = os.path.join(self.path_line_edit.text(), target_folder)
+                    destination_path = os.path.join(destination_folder, filename)
+
+                    if not os.path.exists(destination_folder):
+                        os.makedirs(destination_folder)
+
+                    try:
+                        shutil.copy(source_path, destination_path)
+                        QMessageBox.information(self, "Success", f"File '{filename}' pasted to '{destination_folder}'")
+                        self.refresh_directory()  # Refresh the directory to show the new file
+                    except Exception as e:
+                        QMessageBox.critical(self, "Error", f"Failed to paste file '{filename}': {e}")
+                else:
+                    QMessageBox.warning(self, "Warning", f"File '{filename}' does not match any naming rules and was not pasted.")
+        else:
+            QMessageBox.warning(self, "Warning", "No valid file in clipboard to paste.")
+
+    def delete_file(self):
+        table = self.context_menu_table  # Use the stored table reference
+        current_item = table.currentItem()
+        if current_item:
+            current_file_name = current_item.text()
+            if table == self.table_view:
+                current_column = self.table_view.currentColumn()
+                folder_name = self.get_folder_name_from_column(current_column)
+                file_path = os.path.join(self.path_line_edit.text(), folder_name, current_file_name)
+            elif table == self.unlinked_table:
+                current_column = self.unlinked_table.currentColumn()
+                folder_name = self.get_folder_name_from_column(current_column)
+                file_path = os.path.join(self.path_line_edit.text(), folder_name, current_file_name)
+            else:
+                file_path = os.path.join(self.path_line_edit.text(), current_file_name)
+
+            confirm = QMessageBox.question(
+            self,
+            "Confirm Delete",
+            f"<font color='red'>Are you sure you want to delete {current_file_name}? This file will be permanently deleted.</font>",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+            if confirm == QMessageBox.StandardButton.Yes:
+                try:
+                    os.remove(file_path)
+                    self.refresh_directory()  # Refresh the directory after deleting the file
+                    QMessageBox.information(self, "Success", f"File {current_file_name} deleted successfully.")
+                except Exception as e:
+                    QMessageBox.critical(self, "Error", f"Failed to delete file: {e}")
 
             
     def create_new_file(self):
@@ -1093,7 +1278,7 @@ class ProjectView(QWidget):
         """
         dialog = QDialog(self)
         dialog.setWindowTitle("UI Merger")
-        dialog.setGeometry(100, 100, 800, 400)
+        dialog.setGeometry(530, 180, 500, 600)
 
         main_layout = QVBoxLayout()
         dialog.setLayout(main_layout)
@@ -1105,6 +1290,8 @@ class ProjectView(QWidget):
         ui_file_layout = QVBoxLayout()
         ui_file_label = QLabel("Select UI File:")
         ui_file_list = QListWidget()
+        ui_file_list.setFixedHeight(500) 
+        ui_file_list.setFixedWidth(230)
         self.populate_ui_files(ui_file_list)  # Populate QListWidget with UI files
         ui_file_layout.addWidget(ui_file_label)
         ui_file_layout.addWidget(ui_file_list)
@@ -1112,10 +1299,15 @@ class ProjectView(QWidget):
         ui_mobile_layout.addLayout(ui_file_layout)
 
         # Mobile View for UI File Preview
+        self.mobile_view_layout = QVBoxLayout()
+        self.Mobile_label = QLabel("Preview:")
         self.mobile_view = QWebEngineView()
-        self.mobile_view.setFixedSize(300, 400)
+        self.mobile_view.setFixedSize(300, 500)
         self.mobile_view.setStyleSheet("border: 2px solid black; border-radius: 4px;")
-        ui_mobile_layout.addWidget(self.mobile_view)
+        self.mobile_view_layout.addWidget(self.Mobile_label)
+        self.mobile_view_layout.addWidget(self.mobile_view)
+        self.mobile_view_layout.addStretch()
+        ui_mobile_layout.addLayout(self.mobile_view_layout)
 
         main_layout.addLayout(ui_mobile_layout)
 
@@ -1124,7 +1316,7 @@ class ProjectView(QWidget):
 
         # Merge Button
         merge_button = QPushButton("Merge UI Files")
-        merge_button.clicked.connect(lambda: self.merge_ui_files(ui_file_list))
+        merge_button.clicked.connect(lambda: self.merge_ui_files(ui_file_list, dialog))
         buttons_layout.addWidget(merge_button)
 
         main_layout.addLayout(buttons_layout)
@@ -1168,7 +1360,7 @@ class ProjectView(QWidget):
         """
         Populates the QListWidget with UI files from the 'C:/xampp/htdocs/RDFProjects_ROOT/RDF_UIProjects' directory.
         """
-        ui_files_dir = 'C:/xampp/htdocs/RDFProjects_ROOT/RDF_UIProjects'
+        ui_files_dir = 'C:/xampp/htdocs/RDFProjects_ROOT/RDF_UIProjects/RDF_UI'
         if not os.path.exists(ui_files_dir):
             QMessageBox.warning(self, "Directory Not Found", f"Directory '{ui_files_dir}' not found.")
             return
@@ -1177,7 +1369,7 @@ class ProjectView(QWidget):
         ui_file_list.clear()
         ui_file_list.addItems(ui_files)
 
-    def merge_ui_files(self, ui_file_list):
+    def merge_ui_files(self, ui_file_list, dailog):
         if not hasattr(self, 'folder_path') or not self.folder_path:
                 QMessageBox.warning(self, "Project Not Opened", "Open a project first to merge UI files")
                 return
@@ -1194,7 +1386,7 @@ class ProjectView(QWidget):
             QMessageBox.warning(self, "No UI File Selected", "Please select a UI file to merge.")
             return
 
-        src_file = resource_path(os.path.join('C:/xampp/htdocs/RDFProjects_ROOT/RDF_UIProjects', selected_ui_file))
+        src_file = resource_path(os.path.join('C:/xampp/htdocs/RDFProjects_ROOT/RDF_UIProjects/RDF_UI', selected_ui_file))
         dst_dir = os.path.join(project_path, 'RDF_UI')
         os.makedirs(dst_dir, exist_ok=True)
         dst_file = os.path.join(dst_dir, selected_ui_file)
@@ -1202,8 +1394,16 @@ class ProjectView(QWidget):
         try:
             shutil.copy(src_file, dst_file)
             QMessageBox.information(self, "Success", f"UI file '{selected_ui_file}' merged successfully!")
+            self.file_double_clicked.emit(dst_file)
+            print(dst_file)
+            dailog.accept()
+            
         except Exception as e:
             QMessageBox.critical(self, "Error", f"An error occurred while merging the UI file: {str(e)}")
+        
+        self.refresh_directory()
+        
+        
 
     def update_mobile_view(self, selected_ui_file):
         if not selected_ui_file:
@@ -1213,7 +1413,7 @@ class ProjectView(QWidget):
         if not selected_ui_file.endswith('.php'):
             selected_ui_file += '.php'
 
-        sample_ui_dir = resource_path('C:/xampp/htdocs/RDFProjects_ROOT/RDF_UIProjects')
+        sample_ui_dir = resource_path('C:/xampp/htdocs/RDFProjects_ROOT/RDF_UIProjects/RDF_UI')
         file_path = os.path.normpath(os.path.join(sample_ui_dir, selected_ui_file))
 
         print(f"Loading UI file from: {file_path}")  # Debug: Print the file path

@@ -440,6 +440,8 @@ class MobileView(QWidget):
                 self.tree_widget.clear()
                 self.tree_widget.hide()
                 self.web_view.show()
+
+                self.web_view.setZoomFactor(0.75)
         except Exception as e:
             print(f"Failed to load preview: {e}")
             self.web_view.setHtml("<html><body><h1>Failed to load preview</h1></body></html>")

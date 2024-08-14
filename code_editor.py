@@ -11,7 +11,7 @@ from pc_view import PCView
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 from PyQt6.QtGui import QSyntaxHighlighter,QIcon
 from PyQt6.Qsci import QsciDocument
-from PyQt6.QtWidgets import  QDialog,QPlainTextEdit, QProgressBar,QInputDialog,QLabel, QMainWindow,QLineEdit,QMenu, QVBoxLayout, QWidget, QSplitter, QDialogButtonBox, QTreeView, QToolBar, QFileDialog, QToolButton, QTabWidget, QApplication, QMessageBox, QPushButton, QTextEdit, QScrollBar, QHBoxLayout, QSizePolicy
+from PyQt6.QtWidgets import  QDialog,QPlainTextEdit,QProgressDialog, QProgressBar,QInputDialog,QLabel, QMainWindow,QLineEdit,QMenu, QVBoxLayout, QWidget, QSplitter, QDialogButtonBox, QTreeView, QToolBar, QFileDialog, QToolButton, QTabWidget, QApplication, QMessageBox, QPushButton, QTextEdit, QScrollBar, QHBoxLayout, QSizePolicy
 from PyQt6.QtGui import  QTextCharFormat,QAction, QPixmap, QFileSystemModel, QIcon, QFont, QPainter, QColor, QTextFormat, QTextCursor, QKeySequence, QShortcut
 from PyQt6.QtCore import Qt, QModelIndex, QTimer, QDir,QThread, pyqtSlot, QSize, QRect, QProcess, QPoint, pyqtSignal
 from PyQt6.Qsci import QsciScintilla, QsciLexerPython, QsciLexerHTML, QsciLexerJavaScript, QsciLexerCSS
@@ -606,20 +606,33 @@ class CodeEditor(QMainWindow):
         except Exception as e:
             QMessageBox.critical(None, "Error", str(e))
 
+    def show_progress_dialog(self, message="Opening file...", minimum=0, maximum=100):
+        progress_dialog = QProgressDialog(message, None, minimum, maximum)
+        progress_dialog.setWindowTitle("Please Wait")
+        progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)  # Use Qt.WindowModality for PyQt6
+        progress_dialog.setAutoClose(False)
+        progress_dialog.setAutoReset(False)
+        progress_dialog.setValue(minimum)
+        return progress_dialog
 
     def open_file_from_project_view(self, file_path):
+        progress_dialog = self.show_progress_dialog()
         try:
-            self.open_file_in_new_tab(file_path)
+            self.open_file_in_new_tab(file_path,progress_dialog)
         except Exception as e:
             print(f"Error opening file from project view: {e}")
             logging.error(f"Error opening file from project view: {e}")
+        finally:
+            progress_dialog.close()
     
-    def open_file_in_new_tab(self, file_path):
+    def open_file_in_new_tab(self, file_path,progress_dialog):
         try:
             for i in range(self.tab_widget.count()):
                 if self.tab_widget.widget(i).file_path == file_path:
                     self.tab_widget.setCurrentIndex(i)
+                    progress_dialog.setValue(100)
                     return
+            progress_dialog.setValue(20)
 
             tab = QWidget()
             tab.file_path = file_path
@@ -669,6 +682,8 @@ class CodeEditor(QMainWindow):
             self.tab_widget.addTab(tab, os.path.basename(file_path))
             self.tab_widget.setCurrentWidget(tab)
 
+            progress_dialog.setValue(60)
+
             toggle_button.clicked.connect(lambda: self.toggle_terminal(splitter, toggle_button))
 
             try:
@@ -676,6 +691,8 @@ class CodeEditor(QMainWindow):
                     raw_data = file.read()
                     result = chardet.detect(raw_data)
                     encoding = result['encoding']
+
+                progress_dialog.setValue(80)
 
                 with open(file_path, 'r', encoding=encoding, errors='replace') as file:
                     file_contents = file.read()
@@ -703,6 +720,7 @@ class CodeEditor(QMainWindow):
 
             except Exception as e:
                 print(f"Failed to open file: {e}")
+            progress_dialog.setValue(100)
 
         except Exception as e:
             print(f"Failed to open new tab: {e}")
