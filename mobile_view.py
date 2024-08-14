@@ -212,6 +212,7 @@ class MobileView(QWidget):
                     }
                 """)
             self.copy_url_button.clicked.connect(self.copy_url_to_clipboard)
+            self.copy_url_button.hide()
 
             self.app_store_button = QPushButton("App Store")
             self.app_store_button.setStyleSheet("""
@@ -426,9 +427,11 @@ class MobileView(QWidget):
                 if is_local:
                     preview_url = f"http://localhost:{port}/RDFProjects_ROOT/{project_folder}/RDFView.php?ui={file_name}"
                     self.QR_button.hide()
+                    self.copy_url_button.hide()
                 else:
                     preview_url = f"https://takeitideas.in/RDFProjects_ROOT/{project_folder}/RDFView.php?ui={file_name}"
                     self.QR_button.show()
+                    self.copy_url_button.hide()
 
                 url = QUrl.fromUserInput(preview_url)
                 self.url_display.setText(preview_url)  

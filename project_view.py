@@ -682,44 +682,66 @@ class ProjectView(QWidget):
             table = self.sender()  # Get the table that triggered the event
 
             if table == self.table_view:
-                if row == 0:
-                    folder_name_item = self.table_view.horizontalHeaderItem(column)
-                    file_name_item = self.table_view.item(row, column)
-                    if folder_name_item and file_name_item:
-                        folder_name = folder_name_item.text()
-                        file_name = file_name_item.text()
-                        if file_name:
-                            file_path = os.path.join(self.folder_path, folder_name, file_name)
-                            if os.path.exists(file_path):
-                                self.file_double_clicked.emit(file_path)
-                else:
-                    column_map = {0: 'RDF_UI', 1: 'RDF_ACTION', 2: 'RDF_BW', 3: 'RDF_BVO', 4: 'RDF_DATA'}
-                    folder_name = column_map.get(column)
-                    if folder_name:
-                        file_name = self.table_view.item(row, column).text()
-                        if file_name:
-                            file_path = os.path.join(self.folder_path, folder_name, file_name)
-                            if os.path.exists(file_path):
-                                self.file_double_clicked.emit(file_path)
+                try:
+                    if row == 0:
+                        folder_name_item = self.table_view.horizontalHeaderItem(column)
+                        file_name_item = self.table_view.item(row, column)
+                        if folder_name_item and file_name_item:
+                            folder_name = folder_name_item.text()
+                            file_name = file_name_item.text()
+                            if file_name:
+                                file_path = os.path.join(self.folder_path, folder_name, file_name)
+                                if os.path.exists(file_path):
+                                    self.file_double_clicked.emit(file_path)
+                                else:
+                                    print(f"File not found: {file_path}")
+                            else:
+                                print("File name is empty.")
+                        else:
+                            print("Folder name or file name item is None.")
+                    else:
+                        column_map = {0: 'RDF_UI', 1: 'RDF_ACTION', 2: 'RDF_BW', 3: 'RDF_BVO', 4: 'RDF_DATA'}
+                        folder_name = column_map.get(column)
+                        if folder_name:
+                            file_name = self.table_view.item(row, column).text()
+                            if file_name:
+                                file_path = os.path.join(self.folder_path, folder_name, file_name)
+                                if os.path.exists(file_path):
+                                    self.file_double_clicked.emit(file_path)
+                                else:
+                                    print(f"File not found: {file_path}")
+                            else:
+                                print("File name is empty.")
+                        else:
+                            print(f"Invalid column index: {column}")
+                except Exception as e:
+                    print(f"Error processing table_view double-click: {e}")
 
             elif table == self.unlinked_table:
-                if self.unlinked_table.currentItem():
-                    file_name = self.unlinked_table.currentItem().text()
-                    folder_name = self.get_folder_name_from_extension(file_name)
-                    if folder_name:
-                        file_path = os.path.join(self.folder_path, folder_name, file_name)
-                        if os.path.exists(file_path):
-                            self.file_double_clicked.emit(file_path)
+                try:
+                    if self.unlinked_table.currentItem():
+                        file_name = self.unlinked_table.currentItem().text()
+                        folder_name = self.get_folder_name_from_extension(file_name)
+                        if folder_name:
+                            file_path = os.path.join(self.folder_path, folder_name, file_name)
+                            if os.path.exists(file_path):
+                                self.file_double_clicked.emit(file_path)
+                            else:
+                                print(f"Unlinked file not found: {file_path}")
                         else:
-                            print(f"Unlinked file not found: {file_path}")
-                    else:
-                        print(f"Unable to determine folder for unlinked file: {file_name}")
+                            print(f"Unable to determine folder for unlinked file: {file_name}")
+                except Exception as e:
+                    print(f"Error processing unlinked_table double-click: {e}")
 
             # Prevent editing the cell on double-click
-            self.table_view.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-            self.unlinked_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+            try:
+                self.table_view.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+                self.unlinked_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+            except Exception as e:
+                print(f"Error setting edit triggers: {e}")
+
         except Exception as e:
-            print(f'error opening file{e}')
+            print(f"Unexpected error in cell_double_clicked: {e}")
 
     def get_folder_name_from_extension(self, file_name):
         if file_name.endswith("UI.php"):
@@ -1145,15 +1167,29 @@ class ProjectView(QWidget):
 
         dialog.exec()
 
+    def resource_path(relative_path):
+        """ Get absolute path to resource, works for development and for PyInstaller """
+        try:
+            # PyInstaller creates a temp folder and stores path in _MEIPASS
+            base_path = sys._MEIPASS
+        except Exception:
+            base_path = os.path.abspath(".")
+
+        return os.path.join(base_path, relative_path)
+
+
     def populate_ui_files(self, ui_file_combo):
         """
-        Populates the combo box with UI files from the 'sample_ui' directory.
+        Populates the combo box with UI files from the 'C:/xampp/htdocs/RDFProjects_ROOT/RDF_UIProjects' directory.
         """
-        ui_files_dir = 'sample_ui'
+        ui_files_dir = 'C:/xampp/htdocs/RDFProjects_ROOT/RDF_UIProjects'
         if not os.path.exists(ui_files_dir):
-            os.makedirs(ui_files_dir)
+            QMessageBox.warning(self, "Directory Not Found", f"Directory '{ui_files_dir}' not found.")
+            return
 
         ui_files = [f for f in os.listdir(ui_files_dir) if f.endswith('.php')]
+        ui_file_combo.clear()
+        ui_file_combo.addItem("-- Select UI File --")
         ui_file_combo.addItems(ui_files)
 
     def merge_ui_files(self, ui_file_combo):
@@ -1170,7 +1206,7 @@ class ProjectView(QWidget):
             QMessageBox.warning(self, "No UI File Selected", "Please select a UI file to merge.")
             return
 
-        src_file = resource_path(os.path.join('sample_ui', selected_ui_file))
+        src_file = resource_path(os.path.join('C:/xampp/htdocs/RDFProjects_ROOT/RDF_UIProjects', selected_ui_file))
         dst_dir = os.path.join(project_path, 'RDF_UI')
         os.makedirs(dst_dir, exist_ok=True)
         dst_file = os.path.join(dst_dir, selected_ui_file)
@@ -1181,14 +1217,14 @@ class ProjectView(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Error", f"An error occurred while merging the UI file: {str(e)}")
 
-
     def load_sample_ui_files(self):
         """
-        Loads sample UI files from the 'sample_ui' directory into the list widget.
+        Loads sample UI files from the 'C:/xampp/htdocs/RDFProjects_ROOT/RDF_UIProjects' directory into the list widget.
         """
-        sample_ui_dir = resource_path('sample_ui')
+        sample_ui_dir = resource_path('C:/xampp/htdocs/RDFProjects_ROOT/RDF_UIProjects')
         if not os.path.exists(sample_ui_dir):
-            os.makedirs(sample_ui_dir)
+            QMessageBox.warning(self, "Directory Not Found", f"Directory '{sample_ui_dir}' not found.")
+            return
 
         self.file_list.clear()
         for file_name in os.listdir(sample_ui_dir):
@@ -1196,18 +1232,25 @@ class ProjectView(QWidget):
                 self.file_list.addItem(file_name)
 
     def update_mobile_view(self, selected_ui_file):
-        """
-        Updates the mobile view with the selected UI file content.
-        """
         if selected_ui_file == "-- Select UI File --":
             return
 
-        sample_ui_dir = resource_path('sample_ui')
-        file_path = os.path.join(sample_ui_dir, selected_ui_file)
+        # Ensure the selected file has the correct extension
+        if not selected_ui_file.endswith('.php'):
+            selected_ui_file += '.php'
 
-        if os.path.exists(file_path):
-            with open(file_path, 'r') as file:
-                html_content = file.read()
-                self.mobile_view.setHtml(html_content)
+        sample_ui_dir = resource_path('C:/xampp/htdocs/RDFProjects_ROOT/RDF_UIProjects')
+        file_path = os.path.normpath(os.path.join(sample_ui_dir, selected_ui_file))
+
+        print(f"Loading UI file from: {file_path}")  # Debug: Print the file path
+        try:
+            if os.path.exists(file_path):
+                with open(file_path, 'r') as file:
+                    html_content = file.read()
+                    self.mobile_view.setHtml(html_content)
+        except Exception as e:
+            print(f"error updating mobile view {e}")
+        else:
+            print(f"File not found: {file_path}") 
 
    
