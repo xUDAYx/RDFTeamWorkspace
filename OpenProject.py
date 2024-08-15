@@ -13,6 +13,7 @@ class OpenProjectWizard(QWizard):
         super().__init__()
 
         self.setWindowTitle("Open Project Wizard")
+        self.setFixedSize(300, 400)
 
         self.rdf_project_root = "C:/xampp/htdocs/RDFProjects_ROOT"
         if not os.path.exists(self.rdf_project_root):
@@ -20,26 +21,23 @@ class OpenProjectWizard(QWizard):
             sys.exit(1)
 
         self.intro_page = QWizardPage()
-        self.intro_page.setTitle("Open Project")
+        # self.intro_page.setTitle("Open Project")
         self.intro_layout = QVBoxLayout(self.intro_page)
 
-        # Heading label for the main root folder
-        self.heading_label = QLabel(f"Folder for RDFProjects_ROOT")
-        self.heading_label.setStyleSheet("font-size: 18px; font-weight: bold;")
-        self.intro_layout.addWidget(self.heading_label)
+        # Removed heading label and instructions
+        #self.heading_label = QLabel(f"Folder for RDFProjects_ROOT")
+        #self.heading_label.setStyleSheet("font-size: 18px; font-weight: bold;")
+        #self.intro_layout.addWidget(self.heading_label)
 
-        # Create a horizontal layout for title and folder info
-        self.info_layout = QHBoxLayout()
-        self.intro_layout.addLayout(self.info_layout)
-
-        # Title label
-        self.intro_label = QLabel("Select a folder from the list below.")
-        self.info_layout.addWidget(self.intro_label)
+        # Removed title label for instructions
+        #self.info_layout = QHBoxLayout()
+        #self.intro_layout.addLayout(self.info_layout)
+        #self.intro_label = QLabel("Select a folder from the list below.")
+        #self.info_layout.addWidget(self.intro_label)
         
-        # Folder info label
-        self.folder_info = QLabel("No folder selected")
-        self.info_layout.addStretch()  # Push the folder info label to the right
-        self.info_layout.addWidget(self.folder_info)
+        # Folder info label to show selected folder info
+        # self.folder_info = QLabel("No folder selected")
+        # self.intro_layout.addWidget(self.folder_info)
 
         # Create search input field
         self.search_field = QLineEdit()
@@ -57,7 +55,8 @@ class OpenProjectWizard(QWizard):
         # Connect the list item click event to a function
         self.project_list.itemClicked.connect(self.open_project)
 
-        self.select_button = QPushButton("Select Folder")
+        self.select_button = QPushButton("Open Project")
+        self.select_button.setStyleSheet("background-color:#6495ED; color: white;")
         self.select_button.clicked.connect(self.select_folder)
         self.intro_layout.addWidget(self.select_button)
 
@@ -77,9 +76,12 @@ class OpenProjectWizard(QWizard):
         try:
             # List all folders in the given path
             projects = [f for f in os.listdir(self.rdf_project_root) if os.path.isdir(os.path.join(self.rdf_project_root, f))]
-            self.project_list.addItems(projects)
+            if projects:
+                self.project_list.addItems(projects)
+            else:
+                self.project_list.addItem("No projects found.")
         except Exception as e:
-            self.project_list.addItem(f"Error loading projects: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Error loading projects: {str(e)}")
 
     def filter_projects(self):
         search_term = self.search_field.text().lower()
@@ -92,10 +94,13 @@ class OpenProjectWizard(QWizard):
         self.selected_folder_path = os.path.join(self.rdf_project_root, project_name)
         self.selected_folder = self.selected_folder_path
         # Update the folder info label
-        self.folder_info.setText(f"{project_name} ({self.selected_folder_path})")
+        # self.folder_info.setText(f"{project_name} ({self.selected_folder_path})")
 
     def select_folder(self):
         if self.selected_folder:
+            if not os.path.isdir(self.selected_folder):
+                QMessageBox.warning(self, "Invalid Selection", "The selected folder is not valid.")
+                return
             self.project_opened.emit(self.selected_folder)
             self.accept()  # Accept and close the wizard
         else:
