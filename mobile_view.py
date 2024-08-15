@@ -432,7 +432,7 @@ class MobileView(QWidget):
                 else:
                     preview_url = f"https://takeitideas.in/RDFProjects_ROOT/{project_folder}/RDFView.php?ui={file_name}"
                     self.QR_button.show()
-                    self.copy_url_button.hide()
+                    self.copy_url_button.show()
 
                 url = QUrl.fromUserInput(preview_url)
                 self.url_display.setText(preview_url)  
@@ -578,10 +578,9 @@ class MobileView(QWidget):
             QMessageBox.warning(self, "No URL", "No URL available to copy.")
             return
 
-        self.clipboard_worker = ClipboardWorker(url)
-        self.clipboard_worker.finished.connect(lambda msg: QMessageBox.information(self, "URL Copied", msg))
-        self.clipboard_worker.error.connect(lambda e: QMessageBox.warning(self, "Copy Error", f"Error copying URL: {e}"))
-        self.clipboard_worker.start()
+        clipboard = QApplication.clipboard()
+        clipboard.setText(url)
+        QMessageBox.information(self, "URL Copied", "URL copied to clipboard.")
 
     def open_in_browser(self):
         url = self.url_display.text()

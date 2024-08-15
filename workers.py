@@ -1,4 +1,4 @@
-from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtCore import QThread, pyqtSignal ,QMetaObject, Q_ARG,Qt
 import qrcode
 from PIL.ImageQt import ImageQt
 from io import BytesIO
@@ -42,21 +42,4 @@ class QRCodeWorker(QThread):
         except Exception as e:
             self.error.emit(str(e))
 
-class ClipboardWorker(QThread):
-    finished = pyqtSignal(str)
-    error = pyqtSignal(str)
 
-    def __init__(self, url, parent=None):
-        super().__init__(parent)
-        self.url = url
-
-    def run(self):
-        try:
-            pythoncom.CoInitialize()  # Initialize COM library
-            clipboard = QGuiApplication.clipboard()
-            clipboard.setText(self.url)
-            self.finished.emit("URL has been copied to the clipboard.")
-        except Exception as e:
-            self.error.emit(str(e))
-        finally:
-            pythoncom.CoUninitialize()  
