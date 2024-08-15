@@ -3,6 +3,7 @@ import json
 import logging
 import webbrowser,subprocess
 
+
 from PIL import Image
 import qrcode
 from io import BytesIO
@@ -572,7 +573,7 @@ class MobileView(QWidget):
 
     def copy_url_to_clipboard(self):
         url = self.url_display.text()
-        
+
         if not url:
             QMessageBox.warning(self, "No URL", "No URL available to copy.")
             return

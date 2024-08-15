@@ -4,6 +4,7 @@ from PIL.ImageQt import ImageQt
 from io import BytesIO
 from PyQt6.QtGui import QImage, QPixmap
 from PyQt6.QtGui import QGuiApplication
+import pythoncom
 
 class QRCodeWorker(QThread):
     finished = pyqtSignal(QPixmap, str)
@@ -51,8 +52,11 @@ class ClipboardWorker(QThread):
 
     def run(self):
         try:
+            pythoncom.CoInitialize()  # Initialize COM library
             clipboard = QGuiApplication.clipboard()
             clipboard.setText(self.url)
             self.finished.emit("URL has been copied to the clipboard.")
         except Exception as e:
             self.error.emit(str(e))
+        finally:
+            pythoncom.CoUninitialize()  
