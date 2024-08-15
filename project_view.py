@@ -1356,11 +1356,21 @@ class ProjectView(QWidget):
 
         dialog.exec()
 
+    def resource_path(relative_path):
+        """ Get absolute path to resource, works for dev and for PyInstaller """
+        try:
+            # PyInstaller creates a temp folder and stores the path in _MEIPASS
+            base_path = sys._MEIPASS
+        except Exception:
+            base_path = os.path.abspath(".")
+
+        return os.path.join(base_path, relative_path)
+
     def populate_ui_files(self, ui_file_list):
         """
         Populates the QListWidget with UI files from the 'C:/xampp/htdocs/RDFProjects_ROOT/RDF_UIProjects' directory.
         """
-        ui_files_dir = 'C:/xampp/htdocs/RDFProjects_ROOT/RDF_UIProjects/RDF_UI'
+        ui_files_dir = resource_path('C:/xampp/htdocs/RDFProjects_ROOT/RDF_UIProjects/RDF_UI')
         if not os.path.exists(ui_files_dir):
             QMessageBox.warning(self, "Directory Not Found", f"Directory '{ui_files_dir}' not found.")
             return
@@ -1369,10 +1379,11 @@ class ProjectView(QWidget):
         ui_file_list.clear()
         ui_file_list.addItems(ui_files)
 
-    def merge_ui_files(self, ui_file_list, dailog):
+    def merge_ui_files(self, ui_file_list, dialog):
         if not hasattr(self, 'folder_path') or not self.folder_path:
-                QMessageBox.warning(self, "Project Not Opened", "Open a project first to merge UI files")
-                return
+            QMessageBox.warning(self, "Project Not Opened", "Open a project first to merge UI files")
+            return
+
         """
         Merges the selected UI file into the RDF_UI folder of the current project.
         """
@@ -1396,14 +1407,12 @@ class ProjectView(QWidget):
             QMessageBox.information(self, "Success", f"UI file '{selected_ui_file}' merged successfully!")
             self.file_double_clicked.emit(dst_file)
             print(dst_file)
-            dailog.accept()
-            
+            dialog.accept()
+
         except Exception as e:
             QMessageBox.critical(self, "Error", f"An error occurred while merging the UI file: {str(e)}")
-        
+
         self.refresh_directory()
-        
-        
 
     def update_mobile_view(self, selected_ui_file):
         if not selected_ui_file:
