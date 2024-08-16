@@ -421,7 +421,7 @@ class ProjectView(QWidget):
         open_source_folder_button.clicked.connect(self.open_source_folder)
         additional_buttons_layout.addWidget(open_source_folder_button)
 
-        self.merge_other_uis_button = QPushButton("Merge Other UIs")
+        self.merge_other_uis_button = QPushButton("Add UI Templates")
         self.merge_other_uis_button.setStyleSheet("background-color: #2196F3; color: white; border: none; border-radius: 5px; padding: 5px;")
         self.merge_other_uis_button.setMaximumWidth(150)
         self.merge_other_uis_button.setCursor(Qt.CursorShape.PointingHandCursor)
