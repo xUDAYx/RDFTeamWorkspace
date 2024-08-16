@@ -1048,8 +1048,9 @@ class ProjectView(QWidget):
         if folder_path is None:
             print("populate_tables was called with a None value.")
             return 
-        self.path_line_edit.setText(folder_path)
-        print(f"Populating tables for path: {folder_path}")
+        correct_path = os.path.normpath(folder_path)
+        self.path_line_edit.setText(correct_path)
+        print(f"Populating tables for path: {correct_path}")
         try:
             # Clear both tables
             self.table_view.setRowCount(0)
