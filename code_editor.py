@@ -11,7 +11,7 @@ from pc_view import PCView
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 from PyQt6.QtGui import QSyntaxHighlighter,QIcon
 from PyQt6.Qsci import QsciDocument
-from PyQt6.QtWidgets import  QDialog,QPlainTextEdit,QProgressDialog, QProgressBar,QInputDialog,QLabel, QMainWindow,QLineEdit,QMenu, QVBoxLayout, QWidget, QSplitter, QDialogButtonBox, QTreeView, QToolBar, QFileDialog, QToolButton, QTabWidget, QApplication, QMessageBox, QPushButton, QTextEdit, QScrollBar, QHBoxLayout, QSizePolicy
+from PyQt6.QtWidgets import QWizard, QDialog,QPlainTextEdit,QProgressDialog, QProgressBar,QInputDialog,QLabel, QMainWindow,QLineEdit,QMenu, QVBoxLayout, QWidget, QSplitter, QDialogButtonBox, QTreeView, QToolBar, QFileDialog, QToolButton, QTabWidget, QApplication, QMessageBox, QPushButton, QTextEdit, QScrollBar, QHBoxLayout, QSizePolicy
 from PyQt6.QtGui import  QTextCharFormat,QAction, QPixmap, QFileSystemModel, QIcon, QFont, QPainter, QColor, QTextFormat, QTextCursor, QKeySequence, QShortcut
 from PyQt6.QtCore import Qt, QModelIndex, QTimer, QDir,QThread, pyqtSlot, QSize, QRect, QProcess, QPoint, pyqtSignal
 from PyQt6.Qsci import QsciScintilla, QsciLexerPython, QsciLexerHTML, QsciLexerJavaScript, QsciLexerCSS
@@ -27,7 +27,7 @@ from Rule_Engine import RuleEngine
 from code_formatter import CodeFormatter
 from OpenProject import OpenProjectWizard
 from ref_view import ReferenceView
-
+from publish import PublishWizard
 
 class MultiLanguageHighlighter(QsciAbstractAPIs):
     def __init__(self, editor: QsciScintilla):
@@ -164,48 +164,6 @@ class CustomCodeEditor(QsciScintilla):
                 return
         super().keyPressEvent(event)
     
-    # def find_text(self, text):
-    #     self.search_text = text
-    #     self.current_search_pos = 0
-    #     self.find_next()
-
-    # def find_next(self):
-    #     if self.search_text:
-    #         self.current_search_pos = self.findFirst(
-    #             self.search_text, False, False, False, True, self.current_search_pos
-    #         )
-    #         if self.current_search_pos == -1:
-    #             self.current_search_pos = 0
-
-    # def find_previous(self):
-    #     if self.search_text:
-    #         self.current_search_pos = self.findFirst(
-    #             self.search_text, False, False, False, True, self.current_search_pos - 1, -1
-    #         )
-    #         if self.current_search_pos == -1:
-    #             self.current_search_pos = self.length()
-
-    # def replace(self, text):
-    #     try:
-    #         if self.search_text:
-    #             self.replaceSelectedText(text)
-    #             self.find_next()
-    #     except Exception as e:
-    #         QMessageBox.Warning(self,"replace error",f"error in replace{e}")
-
-    # def replace_all(self, find_text, replace_text):
-    #     try:
-    #         self.beginUndoAction()
-    #         pos = 0
-    #         while True:
-    #             pos = self.findFirst(find_text, False, False, False, True, pos)
-    #             if pos == -1:
-    #                 break
-    #             self.replaceSelectedText(replace_text)
-    #             pos += len(replace_text)
-    #         self.endUndoAction()
-    #     except Exception as e:
-    #         QMessageBox.Warning(self,"replace all error",f"error in replace all{e}")
         
 class CodeEditor(QMainWindow):
     def __init__(self):
@@ -235,6 +193,8 @@ class CodeEditor(QMainWindow):
             self.central_widget = QWidget()
             self.central_widget.setLayout(self.main_layout)
             self.setCentralWidget(self.central_widget)
+
+            
 
             self.base_dir = getattr(sys, '_MEIPASS', os.getcwd())
 
@@ -794,51 +754,72 @@ class CodeEditor(QMainWindow):
             print(f"FTP login failed: {e}")
             return False
 
+    # def on_publish(self):
+    #     server = 'ftp.takeitideas.in'
+
+    #     while True:  # Loop until valid inputs are provided
+    #         login_dialog = LoginDialog(self)
+    #         if login_dialog.exec() == QDialog.DialogCode.Accepted:
+    #             username, password = login_dialog.get_credentials()
+
+    #             if not username:
+    #                 QMessageBox.warning(self, 'Error', 'Username is required.')
+    #                 continue  # Stay in the loop, keep the dialog open
+
+    #             if not password:
+    #                 QMessageBox.warning(self, 'Error', 'Password is required.')
+    #                 continue  # Stay in the loop, keep the dialog open
+
+    #             # Validate FTP credentials
+    #             if not self.validate_ftp_credentials(server, username, password):
+    #                 QMessageBox.warning(self, 'Error', 'Invalid username or password.')
+    #                 continue  # Stay in the loop, keep the dialog open
+
+    #             # Break the loop if both username and password are valid
+    #             break
+
+    #         else:
+    #             # User cancelled the dialog
+    #             QMessageBox.information(self, 'Cancelled', 'Publishing cancelled.')
+    #             return
+
+    #     current_index = self.tab_widget.currentIndex()
+    #     current_tab = self.tab_widget.widget(current_index)
+    #     project_dir = os.path.dirname(os.path.dirname(current_tab.file_path))
+    #     project_name = os.path.basename(project_dir)
+    #     remote_dir = f'/public_html/RDFProjects_ROOT/{project_name}'
+
+    #     # Create and show the progress dialog
+    #     dialog = PublishDialog(self)
+    #     dialog.show()
+
+    #     # Start the upload in a separate thread
+    #     self.upload_thread = UploadThread(server, username, password, project_dir, remote_dir)
+    #     self.upload_thread.progress.connect(dialog.update_progress)
+    #     self.upload_thread.finished.connect(dialog.upload_finished)
+    #     self.upload_thread.start()
+    
     def on_publish(self):
-        server = 'ftp.takeitideas.in'
-
-        while True:  # Loop until valid inputs are provided
-            login_dialog = LoginDialog(self)
-            if login_dialog.exec() == QDialog.DialogCode.Accepted:
-                username, password = login_dialog.get_credentials()
-
-                if not username:
-                    QMessageBox.warning(self, 'Error', 'Username is required.')
-                    continue  # Stay in the loop, keep the dialog open
-
-                if not password:
-                    QMessageBox.warning(self, 'Error', 'Password is required.')
-                    continue  # Stay in the loop, keep the dialog open
-
-                # Validate FTP credentials
-                if not self.validate_ftp_credentials(server, username, password):
-                    QMessageBox.warning(self, 'Error', 'Invalid username or password.')
-                    continue  # Stay in the loop, keep the dialog open
-
-                # Break the loop if both username and password are valid
-                break
-
-            else:
-                # User cancelled the dialog
-                QMessageBox.information(self, 'Cancelled', 'Publishing cancelled.')
-                return
-
         current_index = self.tab_widget.currentIndex()
         current_tab = self.tab_widget.widget(current_index)
-        project_dir = os.path.dirname(os.path.dirname(current_tab.file_path))
-        project_name = os.path.basename(project_dir)
-        remote_dir = f'/public_html/RDFProjects_ROOT/{project_name}'
 
-        # Create and show the progress dialog
-        dialog = PublishDialog(self)
-        dialog.show()
+        if not current_tab.file_path:
+            QMessageBox.warning(self, 'Error', 'No file selected for upload.')
+            return
 
-        # Start the upload in a separate thread
-        self.upload_thread = UploadThread(server, username, password, project_dir, remote_dir)
-        self.upload_thread.progress.connect(dialog.update_progress)
-        self.upload_thread.finished.connect(dialog.upload_finished)
-        self.upload_thread.start()
-    
+        wizard = PublishWizard(current_tab, self)
+        result = wizard.exec()
+
+        # Check if publishing has started before deciding to show cancellation
+        if hasattr(self, 'publishing_started') and self.publishing_started:
+            # The publishing has started, so do not show cancellation message
+            return
+
+        if result == QWizard.DialogCode.Rejected:
+            # Show cancellation message only if the user explicitly cancels
+            QMessageBox.information(self, 'Cancelled', 'Publishing cancelled.')
+
+
 
     def get_language_from_extension(self, extension):
         extension_map = {
@@ -955,161 +936,162 @@ class CodeEditor(QMainWindow):
         error_dialog.setWindowTitle("Error")
         error_dialog.exec()
 
-class UploadThread(QThread):
-    progress = pyqtSignal(int)
-    finished = pyqtSignal(bool)
+# class UploadThread(QThread):
+#     progress = pyqtSignal(int)
+#     finished = pyqtSignal(bool)
 
-    def __init__(self, server, username, password, local_dir, remote_dir):
-        super().__init__()
-        self.server = server
-        self.username = username
-        self.password = password
-        self.local_dir = local_dir
-        self.remote_dir = remote_dir
+#     def __init__(self, server, username, password, local_dir, remote_dir):
+#         super().__init__()
+#         self.server = server
+#         self.username = username
+#         self.password = password
+#         self.local_dir = local_dir
+#         self.remote_dir = remote_dir
 
-    def run(self):
-        try:
-            self.upload_directory_to_ftp(self.server, self.username, self.password, self.local_dir, self.remote_dir)
-            self.finished.emit(True)
-        except Exception as e:
-            print(f"Upload failed: {e}")
-            self.finished.emit(False)
+#     def run(self):
+#         try:
+#             self.upload_directory_to_ftp(self.server, self.username, self.password, self.local_dir, self.remote_dir)
+#             self.finished.emit(True)
+#         except Exception as e:
+#             print(f"Upload failed: {e}")
+#             self.finished.emit(False)
 
-    def upload_directory_to_ftp(self,server, username, password, local_dir, remote_dir):
+#     def upload_directory_to_ftp(self,server, username, password, local_dir, remote_dir):
         
         
-        ftp = None
-        try:
-            ftp = FTP(server, timeout=160)
-            ftp.login(user=username, passwd=password)
+#         ftp = None
+#         try:
+#             ftp = FTP(server, timeout=160)
+#             ftp.login(user=username, passwd=password)
 
-            def make_remote_dirs(remote_directory):
-                dirs = remote_directory.lstrip('/').split('/')
-                path = ''
-                for dir in dirs:
-                    if dir:
-                        path += f'/{dir}'
-                        try:
-                            ftp.cwd(path)
-                            print(f"Directory exists: {path}")
-                        except error_perm:
-                            try:
-                                ftp.mkd(path)
-                                print(f"Created directory: {path}")
-                            except error_perm as e:
-                                print(f"Could not create directory {path}: {e}")
-                                if 'File exists' in str(e):
-                                    continue
-                                else:
-                                    raise
+#             def make_remote_dirs(remote_directory):
+#                 dirs = remote_directory.lstrip('/').split('/')
+#                 path = ''
+#                 for dir in dirs:
+#                     if dir:
+#                         path += f'/{dir}'
+#                         try:
+#                             ftp.cwd(path)
+#                             print(f"Directory exists: {path}")
+#                         except error_perm:
+#                             try:
+#                                 ftp.mkd(path)
+#                                 print(f"Created directory: {path}")
+#                             except error_perm as e:
+#                                 print(f"Could not create directory {path}: {e}")
+#                                 if 'File exists' in str(e):
+#                                     continue
+#                                 else:
+#                                     raise
 
-            def upload_file(local_file_path, remote_file_path):
-                total_size = os.path.getsize(local_file_path)
-                uploaded_size = 0
+#             def upload_file(local_file_path, remote_file_path):
+#                 total_size = os.path.getsize(local_file_path)
+#                 uploaded_size = 0
                 
-                def upload_progress(block):
-                    nonlocal uploaded_size
-                    uploaded_size += len(block)
-                    progress_percentage = int((uploaded_size / total_size) * 100)
-                    self.progress.emit(progress_percentage)
+#                 def upload_progress(block):
+#                     nonlocal uploaded_size
+#                     uploaded_size += len(block)
+#                     progress_percentage = int((uploaded_size / total_size) * 100)
+#                     self.progress.emit(progress_percentage)
                 
-                try:
-                    with open(local_file_path, 'rb') as file_data:
-                        ftp.storbinary(f'STOR {remote_file_path}', file_data, callback=upload_progress)
-                        print(f"file uploaded {remote_file_path}")
-                except error_perm as e:
-                    print(f"Failed to upload {remote_file_path}: {e}")
-                    raise
+#                 try:
+#                     with open(local_file_path, 'rb') as file_data:
+#                         ftp.storbinary(f'STOR {remote_file_path}', file_data, callback=upload_progress)
+#                         print(f"file uploaded {remote_file_path}")
+#                 except error_perm as e:
+#                     print(f"Failed to upload {remote_file_path}: {e}")
+#                     raise
 
 
-            make_remote_dirs(remote_dir)
+#             make_remote_dirs(remote_dir)
 
-            total_files = sum([len(files) for _, _, files in os.walk(local_dir)])
-            processed_files = 0
+#             total_files = sum([len(files) for _, _, files in os.walk(local_dir)])
+#             processed_files = 0
 
-            for root, dirs, files in os.walk(local_dir):
-                for directory in dirs:
-                    local_dir_path = os.path.join(root, directory)
-                    relative_dir_path = os.path.relpath(local_dir_path, local_dir).replace("\\", "/")
-                    remote_sub_dir = os.path.join(remote_dir, relative_dir_path).replace("\\", "/")
-                    make_remote_dirs(remote_sub_dir)
+#             for root, dirs, files in os.walk(local_dir):
+#                 for directory in dirs:
+#                     local_dir_path = os.path.join(root, directory)
+#                     relative_dir_path = os.path.relpath(local_dir_path, local_dir).replace("\\", "/")
+#                     remote_sub_dir = os.path.join(remote_dir, relative_dir_path).replace("\\", "/")
+#                     make_remote_dirs(remote_sub_dir)
 
-                for file in files:
-                    local_file_path = os.path.join(root, file)
-                    relative_file_path = os.path.relpath(local_file_path, local_dir).replace("\\", "/")
-                    remote_file_path = os.path.join(remote_dir, relative_file_path).replace("\\", "/")
-                    upload_file(local_file_path, remote_file_path)
-                    processed_files += 1
-                    progress_percentage = int((processed_files / total_files) * 100)
-                    self.progress.emit(progress_percentage)
+#                 for file in files:
+#                     local_file_path = os.path.join(root, file)
+#                     relative_file_path = os.path.relpath(local_file_path, local_dir).replace("\\", "/")
+#                     remote_file_path = os.path.join(remote_dir, relative_file_path).replace("\\", "/")
+#                     upload_file(local_file_path, remote_file_path)
+#                     processed_files += 1
+#                     progress_percentage = int((processed_files / total_files) * 100)
+#                     self.progress.emit(progress_percentage)
 
             
-            print("Directory uploaded successfully.")
-            return True
+#             print("Directory uploaded successfully.")
+#             return True
 
-        except Exception as e:
-            print(f"Failed to upload directory: {e}")
-            traceback.print_exc()
-            return False
-        finally:
-            if ftp:
-                try:
-                    ftp.quit()
-                    print("FTP connection closed.")
-                except Exception as e:
-                    print(f"Failed to close FTP connection: {e}")
+#         except Exception as e:
+#             print(f"Failed to upload directory: {e}")
+#             traceback.print_exc()
+#             return False
+#         finally:
+#             if ftp:
+#                 try:
+#                     ftp.quit()
+#                     print("FTP connection closed.")
+#                 except Exception as e:
+#                     print(f"Failed to close FTP connection: {e}")
 
-class PublishDialog(QDialog):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle('Publishing Project')
-        self.setFixedSize(300, 100)
+# class PublishDialog(QDialog):
+#     def __init__(self, parent=None):
+#         super().__init__(parent)
+#         self.setWindowTitle('Publishing Project')
+#         self.setFixedSize(300, 100)
         
-        self.layout = QVBoxLayout()
-        self.label = QLabel("Uploading...")
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setRange(0, 100)
-        self.file_label = QLabel("Current file: None")
-        self.layout.addWidget(self.label)
-        self.layout.addWidget(self.progress_bar)
-        self.layout.addWidget(self.file_label)
-        self.setLayout(self.layout)
+#         self.layout = QVBoxLayout()
+#         self.label = QLabel("Uploading...")
+#         self.progress_bar = QProgressBar()
+#         self.progress_bar.setRange(0, 100)
+#         self.file_label = QLabel("Current file: None")
+#         self.layout.addWidget(self.label)
+#         self.layout.addWidget(self.progress_bar)
+#         self.layout.addWidget(self.file_label)
+#         self.setLayout(self.layout)
 
-    def update_progress(self, value):
-        self.progress_bar.setValue(value)
-        QApplication.processEvents()
+#     def update_progress(self, value):
+#         self.progress_bar.setValue(value)
+#         QApplication.processEvents()
 
     
 
-    def upload_finished(self, success):
-        if success:
-            QMessageBox.information(self, "Success", "Project uploaded successfully.")
-        else:
-            QMessageBox.critical(self, "Error", "Failed to upload project.")
-        self.accept()
-class LoginDialog(QDialog):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle('FTP Login')
+#     def upload_finished(self, success):
+#         if success:
+#             QMessageBox.information(self, "Success", "Project uploaded successfully.")
+#         else:
+#             QMessageBox.critical(self, "Error", "Failed to upload project.")
+#         self.accept()
+# class LoginDialog(QDialog):
+#     def __init__(self, parent=None):
+#         super().__init__(parent)
+#         self.setWindowTitle('FTP Login')
 
-        self.layout = QVBoxLayout(self)
+#         self.layout = QVBoxLayout(self)
 
-        self.username_label = QLabel("Username:")
-        self.layout.addWidget(self.username_label)
-        self.username_input = QLineEdit(self)
-        self.layout.addWidget(self.username_input)
+#         self.username_label = QLabel("Username:")
+#         self.layout.addWidget(self.username_label)
+#         self.username_input = QLineEdit(self)
+#         self.layout.addWidget(self.username_input)
 
-        self.password_label = QLabel("Password:")
-        self.layout.addWidget(self.password_label)
-        self.password_input = QLineEdit(self)
-        self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.layout.addWidget(self.password_input)
+#         self.password_label = QLabel("Password:")
+#         self.layout.addWidget(self.password_label)
+#         self.password_input = QLineEdit(self)
+#         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
+#         self.layout.addWidget(self.password_input)
 
-        self.buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
-        self.layout.addWidget(self.buttons)
+#         self.buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
+#         self.layout.addWidget(self.buttons)
 
-        self.buttons.accepted.connect(self.accept)
-        self.buttons.rejected.connect(self.reject)
+#         self.buttons.accepted.connect(self.accept)
+#         self.buttons.rejected.connect(self.reject)
 
-    def get_credentials(self):
-        return self.username_input.text(), self.password_input.text()   
+#     def get_credentials(self):
+#         return self.username_input.text(), self.password_input.text()   
+
