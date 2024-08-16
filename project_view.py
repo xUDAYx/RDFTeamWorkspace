@@ -428,9 +428,9 @@ class ProjectView(QWidget):
         self.merge_other_uis_button.clicked.connect(self.open_ui_merger)
         additional_buttons_layout.addWidget(self.merge_other_uis_button)
 
-        merge_other_projects_button = QPushButton("Merge Other Projects")
+        merge_other_projects_button = QPushButton("Add Feature")
         merge_other_projects_button.setStyleSheet("background-color: #FF9800; color: white; border: none; border-radius: 5px; padding: 5px;")
-        merge_other_projects_button.clicked.connect(self.merge_project)
+        merge_other_projects_button.clicked.connect(self.open_feature_merger)
         merge_other_projects_button.setMaximumWidth(150)
         merge_other_projects_button.setCursor(Qt.CursorShape.PointingHandCursor)
         additional_buttons_layout.addWidget(merge_other_projects_button)
@@ -779,35 +779,130 @@ class ProjectView(QWidget):
             print("Folder does not exist:", folder_path)
             
             
-    def merge_project(self):
-        if not hasattr(self, 'folder_path') or not self.folder_path:
-                QMessageBox.warning(self, "Project Not Opened", "Open a project first to merge new project")
-                return
-    # Prompt the user to select another project folder to merge
-        try:
-            merge_folder_path = QFileDialog.getExistingDirectory(self, "Select Project to Merge", QDir.homePath())
-            if merge_folder_path:
-                current_project_path = self.path_line_edit.text()
-            if current_project_path:
-                success = self.merge_project_data(current_project_path, merge_folder_path)
-                if success:
-                    QMessageBox.information(self, "Merge Successful", "Project merged successfully.")
-                else:
-                    QMessageBox.critical(self, "Merge Failed", "Failed to merge project.")
-                    self.populate_tables(current_project_path)
-        except Exception as e:
-            print(f"{e}")
+    def open_feature_merger(self):
+        """
+        Opens the Feature merger dialog where the user can select and merge projects ending with '_feature'.
+        """
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Feature Merger")
+        dialog.setGeometry(530, 180, 200, 200)
 
-    def merge_project_data(self, current_project_path, merge_folder_path):
+        main_layout = QVBoxLayout()
+        dialog.setLayout(main_layout)
+
+        # Feature Project Selection Layout
+        feature_layout = QHBoxLayout()
+
+        # Feature Project Selection using QListWidget
+        feature_file_layout = QVBoxLayout()
+        feature_file_label = QLabel("Select Feature Project:")
+        feature_file_list = QListWidget()
+        feature_file_list.setFixedHeight(250)
+        feature_file_list.setFixedWidth(230)
+        self.populate_feature_files(feature_file_list)  # Populate QListWidget with Feature projects
+        feature_file_layout.addWidget(feature_file_label)
+        feature_file_layout.addWidget(feature_file_list)
+        feature_file_layout.addStretch()
+        feature_layout.addLayout(feature_file_layout)
+
+        main_layout.addLayout(feature_layout)
+
+        # Buttons Layout
+        buttons_layout = QVBoxLayout()
+
+        # Merge Button
+        merge_button = QPushButton("Merge Feature Project")
+        merge_button.clicked.connect(lambda: self.merge_selected_feature(feature_file_list, dialog))
+        buttons_layout.addWidget(merge_button)
+
+        main_layout.addLayout(buttons_layout)
+
+        # Apply modern CSS styles
+        dialog.setStyleSheet("""
+            QDialog {
+                color: #ffffff;
+                font-family: 'Arial', sans-serif;
+            }
+            QLabel {
+                font-size: 16px;
+            }
+            QListWidget {
+                padding: 8px;
+                font-size: 14px;
+                border: 1px solid #cccccc;
+                border-radius: 4px;
+                background-color: #ffffff;
+                color: #000000;
+            }
+            QPushButton {
+                padding: 10px;
+                font-size: 14px;
+                border: none;
+                border-radius: 4px;
+                background-color: #4CAF50;
+                color: white;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+
+        dialog.exec()
+
+    def populate_feature_files(self, feature_file_list):
+        """
+        Populates the QListWidget with projects ending with '_feature'.
+        """
+        # Determine the base path depending on the execution environment
+        base_path = getattr(sys, '_MEIPASS', os.path.abspath("."))
+
+        # Define the directory path where projects are located
+        project_directory = os.path.join(base_path, "c:/xampp/htdocs/RDFProjects_ROOT")
+
+        # Clear the list before populating
+        feature_file_list.clear()
+
         try:
+            # List all directories in the project_directory
+            for project_name in os.listdir(project_directory):
+                project_path = os.path.join(project_directory, project_name)
+                if project_name.endswith('_Feature') and os.path.isdir(project_path):   
+                    feature_file_list.addItem(project_name)
+        except Exception as e:
+            print(f"Error populating feature files: {e}")
+            QMessageBox.critical(self, "Error", "Failed to load feature projects.")
+
+    def merge_selected_feature(self, feature_file_list, dialog):
+        if not hasattr(self, 'folder_path') or not self.folder_path:
+            QMessageBox.warning(self, "Project Not Opened", "Open a project first to merge Feature")
+            return
+        
+        selected_item = feature_file_list.currentItem()
+        if selected_item is None:
+            QMessageBox.warning(self, "No Project Selected", "Please select a project to merge.")
+            return
+
+        # Determine the base path depending on the execution environment
+        base_path = getattr(sys, '_MEIPASS', os.path.abspath("."))
+
+        # Define the directory path where projects are located
+        merge_folder_name = selected_item.text()
+        merge_folder_path = os.path.join(base_path, "c:/xampp/htdocs/RDFProjects_ROOT", merge_folder_name)
+
+        try:
+            # Assuming `self.folder_path` is the path to the currently open project
+            current_project_path = self.folder_path
+
+            # Read project information
             current_linked_files = read_project_info(current_project_path)
             merge_linked_files = read_project_info(merge_folder_path)
 
             # Combine dictionaries
             combined_linked_files = {**current_linked_files, **merge_linked_files}
 
-            # Copy files from the merge project to the current project
+            # Define the folders to copy files from
             folders = ["RDF_UI", "RDF_ACTION", "RDF_BW", "RDF_BVO", "RDF_DATA"]
+
             for folder in folders:
                 current_folder_path = os.path.join(current_project_path, folder)
                 merge_folder_path_specific = os.path.join(merge_folder_path, folder)
@@ -831,11 +926,18 @@ class ProjectView(QWidget):
                             file_item = QTableWidgetItem(file_name)
                             self.table_view.setItem(row_count, column_index, file_item)
 
-            return True
+            # Populate tables with the updated project information
+            self.populate_tables(current_project_path)
+
+            # Show success message
+            QMessageBox.information(self, "Merge Successful", f"'{merge_folder_name}' merged successfully.")
+            self.refresh_directory()
+            dialog.accept()
 
         except Exception as e:
             print(f"Error merging project: {e}")
-            return False
+            QMessageBox.critical(self, "Merge Failed", f"Failed to merge '{merge_folder_name}'.")
+
         
     def update_project_view(self, project_dir):
         try:

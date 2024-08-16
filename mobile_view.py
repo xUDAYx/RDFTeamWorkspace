@@ -16,7 +16,7 @@ from PyQt6.QtCore import QUrl, Qt, QSize, QPoint, QThread, pyqtSignal,QRegularEx
 from PyQt6.QtGui import QIcon,QGuiApplication,QPixmap, QImage,QStandardItemModel, QStandardItem
 from urllib.parse import quote
 from PyQt6.QtWebEngineCore import QWebEnginePage 
-from workers import QRCodeWorker, ClipboardWorker
+from workers import QRCodeWorker
 from BookMark import BookmarkWizard
 
 
