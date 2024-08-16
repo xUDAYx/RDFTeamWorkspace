@@ -560,16 +560,31 @@ class CodeEditor(QMainWindow):
             current_widget = self.tab_widget.currentWidget()
             if current_widget:
                 editor = current_widget.findChild(QsciScintilla)
-                if editor and hasattr(current_widget, 'file_path'):
-                    with open(current_widget.file_path, 'w') as file:
-                        file.write(editor.text())
+                if editor and hasattr(current_widget, 'file_path') and current_widget.file_path:
+                    normalized_file_path = os.path.normpath(current_widget.file_path)
+                    temp_file_path = current_widget.file_path + ".tmp"
+
+                    with open(temp_file_path, 'w') as temp_file:
+                        temp_file.write(editor.text())
+                        temp_file.flush()
+                        os.fsync(temp_file.fileno())
+
+                    os.replace(temp_file_path, current_widget.file_path)  # Safely replace the original file
+
                     terminal = current_widget.findChild(TerminalWidget)
                     if terminal:
-                        terminal.write(f"Saved file: {current_widget.file_path}\n")
+                        terminal.write(f"Saved file: {normalized_file_path}\n")
+
+                    # Reload the file preview
                     self.mobile_view.load_file_preview(current_widget.file_path)
                     self.pc_view.load_file_preview(current_widget.file_path)
+
                 else:
-                    terminal.write("No file opened to save.\n")
+                    terminal = current_widget.findChild(TerminalWidget)
+                    if terminal:
+                        terminal.write("No file opened to save.\n")
+            else:
+                print("No current widget to save.")
         except Exception as e:
             print(f"Error saving file: {e}")
             logging.error(f"Error saving file: {e}")
@@ -913,13 +928,17 @@ class CodeEditor(QMainWindow):
                                         QMessageBox.StandardButton.No)
             
             if reply == QMessageBox.StandardButton.Yes:
-                qapp = QApplication.instance()
-                qapp.quit()
-                QProcess.startDetached(sys.executable, sys.argv)
+                # Log the restart attempt
+                logging.info("Restarting the application...")
+                
+                # Quit the current application
+                QApplication.instance().quit()
+
+                # Restart the application using os.execl
+                os.execl(sys.executable, sys.executable, *sys.argv)
             else:
-                print("Restart cancelled by user.")
+                logging.info("Restart cancelled by user.")
         except Exception as e:
-            print(f"Error restarting application: {e}")
             logging.error(f"Error restarting application: {e}")
 
 
