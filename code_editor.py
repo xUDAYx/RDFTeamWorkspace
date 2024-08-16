@@ -712,7 +712,8 @@ class CodeEditor(QMainWindow):
                 with open(file_path, 'r', encoding=encoding, errors='replace') as file:
                     file_contents = file.read()
                     editor.setText(file_contents)
-                    terminal.write(f"Loaded file: {file_path}\n")
+                    correct_file_path = os.path.normpath(file_path)
+                    terminal.write(f"Loaded file: {correct_file_path}\n")
                     self.rule_engine.validate_and_apply_rules(file_path)
 
                     extension = os.path.splitext(file_path)[1][1:]
