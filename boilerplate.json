@@ -1,0 +1,12 @@
+{
+  "Table Boilerplate": "<table class=\"section\">\n  <tr>\n    <th>Header 1</th>\n    <th>Header 2</th>\n    <th>Header 3</th>\n  </tr>\n  <tr>\n    <td>Row 1, Cell 1</td>\n    <td>Row 1, Cell 2</td>\n    <td>Row 1, Cell 3</td>\n  </tr>\n  <tr>\n    <td>Row 2, Cell 1</td>\n    <td>Row 2, Cell 2</td>\n    <td>Row 2, Cell 3</td>\n  </tr>\n</table>",
+
+
+
+  "Form Boilerplate": "<form action=\"/submit\" method=\"post\">\n  <label for=\"name\">Name:</label>\n  <input type=\"text\" id=\"name\" name=\"name\" required>\n\n  <label for=\"email\">Email:</label>\n  <input type=\"email\" id=\"email\" name=\"email\" required>\n\n  <label for=\"message\">Message:</label>\n  <textarea id=\"message\" name=\"message\" required></textarea>\n\n  <input type=\"submit\" value=\"Submit\">\n</form>",
+
+
+  "Image Boilerplate": "<img src=\"path/to/image.jpg\" alt=\"Description of the image\" width=\"300\" height=\"200\">"
+
+  
+}

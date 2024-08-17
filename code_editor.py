@@ -81,12 +81,61 @@ class CustomCodeEditor(QsciScintilla):
             self.setup_editor()
         except Exception as e:
             print(f"Error initializing CustomCodeEditor: {e}")
+            
+            
+    
+    def show_context_menu(self, pos):
+        # Create the context menu
+        menu = self.createStandardContextMenu()
+        
+        # Add the "Insert Boilerplate" action to the context menu
+        insert_boilerplate_action = QAction("Insert Boilerplate", self)
+        insert_boilerplate_action.triggered.connect(self.insert_boilerplate)
+        menu.addAction(insert_boilerplate_action)
+        
+        # Show the context menu
+        menu.exec_(self.mapToGlobal(pos))
 
+    def contextMenuEvent(self, event):
+        # Create the context menu
+        menu = QMenu(self)
+        
+        # Add the "Insert Boilerplate" submenu
+        insert_boilerplate_menu = QMenu("Insert Boilerplate", self)
+        menu.addMenu(insert_boilerplate_menu)
+        
+        # Load the boilerplate options from the JSON file
+        with open('boilerplate.json', 'r') as f:
+            boilerplate_data = json.load(f)
+        
+        # Add each boilerplate option as an action in the submenu
+        for boilerplate_name, boilerplate_code in boilerplate_data.items():
+            boilerplate_action = QAction(boilerplate_name, self)
+            boilerplate_action.triggered.connect(lambda checked, code=boilerplate_code: self.insert_boilerplate(code))
+            insert_boilerplate_menu.addAction(boilerplate_action)
+        
+        # Show the context menu
+        menu.exec(event.globalPos())
+
+    def insert_boilerplate(self, boilerplate_code):
+        # Get the current cursor position
+        line, index = self.getCursorPosition()
+        
+        # Insert the boilerplate code at the current cursor position
+        self.insertAt(boilerplate_code, line, index)
+        
+        # Move the cursor to the beginning of the boilerplate code
+        self.setCursorPosition(line, index)
+    
     def setup_editor(self):
         """Initialize editor settings and font."""
         font = QFont("Consolas", self.font_size)
         self.setFont(font)
 
+        # Connect the context menu request signal to a custom method
+        self.SCN_CONTEXTMENU.connect(self.show_context_menu)
+        
+        
         # Adjust line number margin settings
         self.setMarginLineNumbers(0, True)
         self.setMarginWidth(0, self.fontMetrics().horizontalAdvance('0000') + 6)
@@ -245,6 +294,10 @@ class CodeEditor(QMainWindow):
             project_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
             project_button.setStyleSheet("QToolButton::menu-indicator { image: none; }")
 
+                     
+            
+            
+            
             self.toolbar.addWidget(project_button)
 
             # Create View menu and actions
@@ -292,12 +345,12 @@ class CodeEditor(QMainWindow):
             validation_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
             validation_button.setStyleSheet("QToolButton::menu-indicator { image: none; }")
 
-            self.toolbar.addWidget(validation_button)
-
-
+            self.toolbar.addWidget(validation_button)  
+    
             # Add actions directly to the toolbar
 
-            self.toolbar.addAction(self.restart_application_button)
+            self.toolbar.addAction(self.restart_application_button)            
+            
 
             # Add the toolbar to the main layout
 
@@ -347,8 +400,38 @@ class CodeEditor(QMainWindow):
         except Exception as e:
             print(f"Error initializing CodeEditor: {e}")
             logging.error(f"Error initializing CodeEditor: {e}")
-            
-            
+    
+    def contextMenuEvent(self, event):
+        # Create the context menu
+        menu = QMenu(self)
+        
+        # Add the "Insert Boilerplate" action to the context menu
+        insert_boilerplate_action = QAction("Insert Boilerplate", self)
+        insert_boilerplate_action.triggered.connect(self.insert_boilerplate)
+        menu.addAction(insert_boilerplate_action)
+        
+        # Add other context menu actions as needed
+        
+        # Show the context menu
+        menu.exec(event.globalPos())
+
+    def insert_boilerplate(self):
+        # Get the current cursor position
+        cursor_position = self.getCursorPosition()
+        
+        # Load the boilerplate code from the JSON file
+        with open('boilerplate.json', 'r') as f:
+            boilerplate_data = json.load(f)
+            boilerplate = boilerplate_data['boilerplate']
+        
+        # Insert the boilerplate code at the current cursor position
+        self.insertAt(boilerplate, cursor_position[0], cursor_position[1])
+        
+        # Move the cursor to the beginning of the boilerplate code
+        self.setCursorPosition(cursor_position[0], cursor_position[1])
+    
+
+        
     def save_as(self):
         try:
             # Get the current project's directory from the ProjectView
