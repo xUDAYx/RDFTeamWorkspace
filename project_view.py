@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QApplication,QWidget, QWizard,QVBoxLayout,QScrollArea, QTableWidget,QProgressDialog, QPushButton,QListWidget, QFileDialog, QTableWidgetItem, QHeaderView, QLineEdit, QHBoxLayout,QLabel,QMessageBox,QMenu,QInputDialog, QDialog, QComboBox
+from PyQt6.QtWidgets import QApplication,QWidget, QWizard,QWizardPage,QVBoxLayout,QScrollArea, QTableWidget,QProgressDialog, QPushButton,QListWidget, QFileDialog, QTableWidgetItem, QHeaderView, QLineEdit, QHBoxLayout,QLabel,QMessageBox,QMenu,QInputDialog, QDialog, QComboBox
 from PyQt6.QtCore import Qt, QDir, pyqtSignal, QUrl
 from PyQt6.QtGui import QMouseEvent,QAction
 
