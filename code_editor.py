@@ -90,13 +90,29 @@ class CustomCodeEditor(QsciScintilla):
         
         # Add the "Insert Boilerplate" action to the context menu
         insert_boilerplate_action = QAction("Insert Boilerplate", self)
-        insert_boilerplate_action.triggered.connect(self.insert_boilerplate)
+        insert_boilerplate_action.triggered.connect(self.contextMenuEvent)
         menu.addAction(insert_boilerplate_action)
         
         # Show the context menu
         menu.exec_(self.mapToGlobal(pos))
 
     def contextMenuEvent(self, event):
+        # Determine the directory of the EXE or script
+        if getattr(sys, 'frozen', False):
+            # If the application is running as an EXE
+            base_dir = os.path.dirname(sys.executable)
+        else:
+            # If the application is running as a script
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        # Path to the boilerplate.json
+        json_path = os.path.join(base_dir, 'boilerplate.json')
+
+        if not os.path.exists(json_path):
+            # Show a message box if the boilerplate.json file does not exist
+            QMessageBox.warning(self, "File Not Found", "boilerplate.json does not exist in the same folder as the application.")
+            return
+        
         # Create the context menu
         menu = QMenu(self)
         
@@ -105,7 +121,7 @@ class CustomCodeEditor(QsciScintilla):
         menu.addMenu(insert_boilerplate_menu)
         
         # Load the boilerplate options from the JSON file
-        with open('boilerplate.json', 'r') as f:
+        with open(json_path, 'r') as f:
             boilerplate_data = json.load(f)
         
         # Add each boilerplate option as an action in the submenu
@@ -400,36 +416,6 @@ class CodeEditor(QMainWindow):
         except Exception as e:
             print(f"Error initializing CodeEditor: {e}")
             logging.error(f"Error initializing CodeEditor: {e}")
-    
-    def contextMenuEvent(self, event):
-        # Create the context menu
-        menu = QMenu(self)
-        
-        # Add the "Insert Boilerplate" action to the context menu
-        insert_boilerplate_action = QAction("Insert Boilerplate", self)
-        insert_boilerplate_action.triggered.connect(self.insert_boilerplate)
-        menu.addAction(insert_boilerplate_action)
-        
-        # Add other context menu actions as needed
-        
-        # Show the context menu
-        menu.exec(event.globalPos())
-
-    def insert_boilerplate(self):
-        # Get the current cursor position
-        cursor_position = self.getCursorPosition()
-        
-        # Load the boilerplate code from the JSON file
-        with open('boilerplate.json', 'r') as f:
-            boilerplate_data = json.load(f)
-            boilerplate = boilerplate_data['boilerplate']
-        
-        # Insert the boilerplate code at the current cursor position
-        self.insertAt(boilerplate, cursor_position[0], cursor_position[1])
-        
-        # Move the cursor to the beginning of the boilerplate code
-        self.setCursorPosition(cursor_position[0], cursor_position[1])
-    
 
         
     def save_as(self):
@@ -928,10 +914,6 @@ class CodeEditor(QMainWindow):
         except Exception as e:
             logging.error(f"Error restarting application: {e}")
 
-
-    
-    
-            
 
     def show_error_message(self, message):
         error_dialog = QMessageBox(self)
