@@ -28,6 +28,7 @@ from code_formatter import CodeFormatter
 from OpenProject import OpenProjectWizard
 from ref_view import ReferenceView
 from publish import PublishWizard
+from file_view import FileView
 
 class MultiLanguageHighlighter(QsciAbstractAPIs):
     def __init__(self, editor: QsciScintilla):
@@ -269,6 +270,7 @@ class CodeEditor(QMainWindow):
             self.open_project_wizard.project_opened.connect(self.project_view.update_project_view)
             self.wizard.project_created.connect(self.project_view.update_project_view)
             self.project_view.file_double_clicked.connect(self.open_file_from_project_view)
+            self.project_view.path_changed.connect(self.update_file_view_path)
 
             self.pc_view_active = False  # Add this line to track PC view state
             
@@ -343,10 +345,13 @@ class CodeEditor(QMainWindow):
             self.dark_mode_action.triggered.connect(self.toggle_dark_theme)
             self.pc_view_action = QAction("PC View", self)
             self.pc_view_action.triggered.connect(self.toggle_pc_view)
+            self.file_view_action = QAction("file View", self)
+            self.file_view_action.triggered.connect(self.files_view)
 
             view_menu.addAction(self.dark_mode_action)
             view_menu.addAction(self.project_view_action)
             view_menu.addAction(self.pc_view_action)
+            view_menu.addAction(self.file_view_action)
 
             # Create a View button with the view menu
             view_button = QToolButton(self)
@@ -435,6 +440,15 @@ class CodeEditor(QMainWindow):
             print(f"Error initializing CodeEditor: {e}")
             logging.error(f"Error initializing CodeEditor: {e}")
 
+    def update_file_view_path(self, path):
+        if hasattr(self, 'file_viewer'):
+            self.file_viewer.set_path(path)
+
+    def files_view(self):
+        self.file_viewer = FileView()
+        current_path = self.project_view.get_path()  # Retrieve the current path
+        self.file_viewer.set_path(current_path)  # Pass the path to FileView
+        self.file_viewer.show()
         
     def save_as(self):
         try:

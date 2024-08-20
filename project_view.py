@@ -368,6 +368,7 @@ class CopyWizard(QWizard):
             QMessageBox.warning(self, "Warning", "No destination project folder selected.")
 
 class ProjectView(QWidget):
+    path_changed = pyqtSignal(str)
     file_double_clicked = pyqtSignal(str)
     
     def __init__(self, parent=None):
@@ -543,6 +544,13 @@ class ProjectView(QWidget):
                 QMessageBox.critical(self, "Error", f"File does not exist: {self.copied_file_path}")
             else:
                 self.open_copy_wizard()
+
+    def set_path(self, path):
+        self.path_line_edit.setText(path)
+        self.path_changed.emit(path)
+    
+    def get_path(self):
+        return self.path_line_edit.text()
 
     def open_copy_wizard(self):
         wizard = CopyWizard(self.copied_file_path, self)
