@@ -120,15 +120,32 @@ class CustomCodeEditor(QsciScintilla):
         insert_boilerplate_menu = QMenu("Insert Boilerplate", self)
         menu.addMenu(insert_boilerplate_menu)
         
+        # Add the category submenus
+        easy_html_tags_menu = QMenu("Easy HTML Tags", insert_boilerplate_menu)
+        complex_html_tags_menu = QMenu("Complex HTML Tags", insert_boilerplate_menu)
+        ready_made_menu = QMenu("Ready Made", insert_boilerplate_menu)
+        insert_boilerplate_menu.addMenu(easy_html_tags_menu)
+        insert_boilerplate_menu.addMenu(complex_html_tags_menu)
+        insert_boilerplate_menu.addMenu(ready_made_menu)
+        
         # Load the boilerplate options from the JSON file
         with open(json_path, 'r') as f:
             boilerplate_data = json.load(f)
         
-        # Add each boilerplate option as an action in the submenu
+        # Add each boilerplate option to the appropriate submenu
         for boilerplate_name, boilerplate_code in boilerplate_data.items():
-            boilerplate_action = QAction(boilerplate_name, self)
-            boilerplate_action.triggered.connect(lambda checked, code=boilerplate_code: self.insert_boilerplate(code))
-            insert_boilerplate_menu.addAction(boilerplate_action)
+            if boilerplate_name.startswith("Easy HTML Tags:"):
+                boilerplate_action = QAction(boilerplate_name.split(":")[1], self)
+                boilerplate_action.triggered.connect(lambda checked, code=boilerplate_code: self.insert_boilerplate(code))
+                easy_html_tags_menu.addAction(boilerplate_action)
+            elif boilerplate_name.startswith("Complex HTML Tags:"):
+                boilerplate_action = QAction(boilerplate_name.split(":")[1], self)
+                boilerplate_action.triggered.connect(lambda checked, code=boilerplate_code: self.insert_boilerplate(code))
+                complex_html_tags_menu.addAction(boilerplate_action)
+            elif boilerplate_name.startswith("Ready Made:"):
+                boilerplate_action = QAction(boilerplate_name.split(":")[1], self)
+                boilerplate_action.triggered.connect(lambda checked, code=boilerplate_code: self.insert_boilerplate(code))
+                ready_made_menu.addAction(boilerplate_action)
         
         # Show the context menu
         menu.exec(event.globalPos())
@@ -142,7 +159,8 @@ class CustomCodeEditor(QsciScintilla):
         
         # Move the cursor to the beginning of the boilerplate code
         self.setCursorPosition(line, index)
-    
+
+        
     def setup_editor(self):
         """Initialize editor settings and font."""
         font = QFont("Consolas", self.font_size)
