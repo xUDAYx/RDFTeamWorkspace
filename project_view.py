@@ -690,52 +690,7 @@ class ProjectView(QWidget):
             except Exception as e:
                 QMessageBox.warning(self, "Error", f"Failed to create new file: {e}")
 
-    def copy_file(self):
-        table = self.context_menu_table  # Use the stored table reference
-        current_item = table.currentItem()
-    
-        if current_item:
-            current_file_name = current_item.text()
-            if table == self.table_view:
-                current_column = self.table_view.currentColumn()
-                folder_name = self.get_folder_name_from_column(current_column)
-                self.copied_file_path = os.path.join(self.path_line_edit.text(), folder_name, current_file_name)
-            elif table == self.unlinked_table:
-                current_column = self.unlinked_table.currentColumn()
-                folder_name = self.get_folder_name_from_column(current_column)
-                self.copied_file_path = os.path.join(self.path_line_edit.text(), folder_name, current_file_name)
-            else:
-                self.copied_file_path = os.path.join(self.path_line_edit.text(), current_file_name)
-        
-            if self.copied_file_path and os.path.exists(self.copied_file_path):
-                destination_path = QFileDialog.getExistingDirectory(self, "Select Destination Folder", self.path_line_edit.text())
-                if destination_path:
-                    try:
-                        shutil.copy(self.copied_file_path, destination_path)
-                        QMessageBox.information(self, "Success", f"File copied to {destination_path}")
-                        self.refresh_directory()  # Refresh the directory to show the new file
-                    except Exception as e:
-                        QMessageBox.critical(self, "Error", f"Failed to copy file: {e}")
-            else:
-                QMessageBox.critical(self, "Error", f"File does not exist: {self.copied_file_path}")
-    def paste_file(self):
-        clipboard = QApplication.clipboard()
-        mime_data = clipboard.mimeData()
-        if mime_data.hasUrls():
-            urls = mime_data.urls()
-            for url in urls:
-                source_path = url.toLocalFile()
-                if os.path.exists(source_path):
-                    destination_folder = QFileDialog.getExistingDirectory(self, "Select Destination Folder", self.path_line_edit.text())
-                    if destination_folder:
-                        try:
-                            shutil.copy(source_path, destination_folder)
-                            QMessageBox.information(self, "Success", f"File pasted to {destination_folder}")
-                            self.refresh_directory()  # Refresh the directory to show the new file
-                        except Exception as e:
-                            QMessageBox.critical(self, "Error", f"Failed to paste file: {e}")
-                else:
-                    QMessageBox.critical(self, "Error", "No file to paste or file does not exist")
+
 
     
     def get_folder_name_from_column(self, column):
