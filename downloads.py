@@ -2,7 +2,7 @@ from ftplib import FTP
 import os
 import sys
 from PyQt6.QtCore import QThread, pyqtSignal
-from PyQt6.QtWidgets import QMessageBox
+from PyQt6.QtWidgets import QMessageBox,QDialog,QApplication,QVBoxLayout,QProgressBar,QLabel
 import stat
 
 class Download:
@@ -51,9 +51,9 @@ class DownloadThread(QThread):
     progress_update = pyqtSignal(int, str)
     error_message = pyqtSignal(str)
 
-    def __init__(self, parent=None):
+    def __init__(self, dialog, parent=None):
         super().__init__(parent)
-        self.parent = parent
+        self.dialog = dialog
 
     def run(self):
         # FTP connection details
@@ -152,3 +152,24 @@ class DownloadThread(QThread):
 
         except Exception as e:
             self.error_message.emit(f"An error occurred: {e}")
+
+class DownloadDailog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle('Updating...')
+        self.setFixedSize(300, 100)
+        
+        self.layout = QVBoxLayout()
+        self.label = QLabel("Downloading...")
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setRange(0, 100)
+        self.layout.addWidget(self.label)
+        self.layout.addWidget(self.progress_bar)
+        self.setLayout(self.layout)
+
+    def update_progress(self, value):
+        self.progress_bar.setValue(value)
+        QApplication.processEvents()
+
+    
+

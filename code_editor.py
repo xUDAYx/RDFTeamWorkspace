@@ -29,7 +29,7 @@ from OpenProject import OpenProjectWizard
 from ref_view import ReferenceView
 from publish import PublishWizard
 from file_view import FileView
-from downloads import Download,DownloadThread
+from downloads import Download,DownloadThread,DownloadDailog
 
 class MultiLanguageHighlighter(QsciAbstractAPIs):
     def __init__(self, editor: QsciScintilla):
@@ -467,22 +467,27 @@ class CodeEditor(QMainWindow):
 
     def Download_boilerPlate(self):
         self.Downloader = Download()
+        self.download_dialog = DownloadDailog(self)
+        self.download_dialog.show()
         self.Downloader.update_boilerplate()
+        self.download_dialog.accept()
     
     def update_Ui(self):
-          # Create and start the download thread
-        self.download_thread = DownloadThread(parent=self)
+        self.download_dialog = DownloadDailog(self)
+        self.download_thread = DownloadThread(dialog=self.download_dialog)
         self.download_thread.update_message.connect(self.show_success_message)
+        self.download_thread.progress_update.connect(self.download_dialog.update_progress)
         self.download_thread.error_message.connect(self.show_error_message)
+        self.download_thread.finished.connect(self.download_dialog.accept)  # Close the dialog when done
+
+        self.download_dialog.show()
         self.download_thread.start()
 
-      
-
     def show_success_message(self, message):
-        QMessageBox.information(None, "Success", message)
+        QMessageBox.information(self, "Success", message)
 
     def show_error_message(self, message):
-        QMessageBox.critical(None, "Error", message)
+        QMessageBox.critical(self, "Error", message)
 
     def files_view(self):
         self.file_viewer = FileView()

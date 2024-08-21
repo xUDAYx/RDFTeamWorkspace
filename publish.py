@@ -359,10 +359,8 @@ class PublishDialog(QDialog):
         self.label = QLabel("Uploading...")
         self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 100)
-        self.file_label = QLabel("Current file: None")
         self.layout.addWidget(self.label)
         self.layout.addWidget(self.progress_bar)
-        self.layout.addWidget(self.file_label)
         self.setLayout(self.layout)
 
     def update_progress(self, value):
