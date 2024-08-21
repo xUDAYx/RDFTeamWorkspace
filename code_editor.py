@@ -29,6 +29,7 @@ from OpenProject import OpenProjectWizard
 from ref_view import ReferenceView
 from publish import PublishWizard
 from file_view import FileView
+from downloads import Download
 
 class MultiLanguageHighlighter(QsciAbstractAPIs):
     def __init__(self, editor: QsciScintilla):
@@ -168,7 +169,7 @@ class CustomCodeEditor(QsciScintilla):
         self.setFont(font)
 
         # Connect the context menu request signal to a custom method
-        self.SCN_CONTEXTMENU.connect(self.show_context_menu)
+        self.SCI_CONTEXTMENU.connect(self.show_context_menu)
         
         
         # Adjust line number margin settings
@@ -385,6 +386,22 @@ class CodeEditor(QMainWindow):
             validation_button.setStyleSheet("QToolButton::menu-indicator { image: none; }")
 
             self.toolbar.addWidget(validation_button)  
+
+            update_menu = QMenu("update",self)
+
+            self.boilerplate_update_action = QAction("update boilerplate")
+            self.boilerplate_update_action.triggered.connect(self.Download_boilerPlate)
+
+            update_menu.addAction(self.boilerplate_update_action)
+            
+
+
+            update_button = QToolButton(self)
+            update_button.setText("update")
+            update_button.setMenu(update_menu)
+            update_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+            update_button.setStyleSheet("QToolButton::menu-indicator { image: none; }")
+            self.toolbar.addWidget(update_button)
     
             # Add actions directly to the toolbar
 
@@ -443,6 +460,10 @@ class CodeEditor(QMainWindow):
     def update_file_view_path(self, path):
         if hasattr(self, 'file_viewer'):
             self.file_viewer.set_path(path)
+
+    def Download_boilerPlate(self):
+        self.Downloader = Download()
+        self.Downloader.update_boilerplate()
 
     def files_view(self):
         self.file_viewer = FileView()
