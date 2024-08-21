@@ -288,7 +288,7 @@ class CopyWizard(QWizard):
     def __init__(self, copied_file_path, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Copy File to Project Folder")
-        self.setGeometry(300, 200, 500, 400)
+        self.setGeometry(600, 200, 300, 400)
 
         self.copied_file_path = copied_file_path
         self.addPage(self.createCopyPage())
@@ -310,9 +310,14 @@ class CopyWizard(QWizard):
         layout.addWidget(self.folder_list)
 
         self.copy_button = QPushButton("Copy")
+        self.copy_button.setStyleSheet("background-color:#6495ED; color: white;")
         self.copy_button.clicked.connect(self.copy_file_to_selected_folder)
         layout.addWidget(self.copy_button)
-
+        self.setButtonLayout([
+            QWizard.WizardButton.Stretch,
+            QWizard.WizardButton.BackButton,
+            QWizard.WizardButton.NextButton,            
+        ])
         page.setLayout(layout)
         return page
     def filter_folders(self, text):
@@ -553,7 +558,7 @@ class ProjectView(QWidget):
         return self.path_line_edit.text()
 
     def open_copy_wizard(self):
-        wizard = CopyWizard(self.copied_file_path, self)
+        wizard = CopyWizard(self.copied_file_path)
         wizard.exec()
 
     def paste_file(self):
