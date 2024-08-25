@@ -1598,7 +1598,7 @@ class ProjectView(QWidget):
         main_layout.addLayout(right_layout, 3)  # Add right section to the main layout with stretch factor 3
 
         # Connect UI ComboBox to update mobile view
-        ui_combo.currentIndexChanged.connect(lambda: self.update_mobile_view(ui_combo.currentText()))
+        ui_combo.currentIndexChanged.connect(lambda: self.update_Project_mobile_view(ui_combo.currentText()))
 
         # Apply modern CSS styles
         dialog.setStyleSheet("""
@@ -1705,7 +1705,7 @@ class ProjectView(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Error", f"An error occurred while merging the project: {str(e)}")
 
-    def update_mobile_view(self, selected_ui_file):
+    def update_Project_mobile_view(self, selected_ui_file):
         """
         Updates the mobile view with the selected UI file's content.
         """
