@@ -1568,7 +1568,7 @@ class ProjectView(QWidget):
         left_layout.addWidget(self.project_combo)
 
         # UI File ComboBox
-        ui_label = QLabel("Select UI File:")
+        ui_label = QLabel("See Preview of UI files:")
         ui_combo = QComboBox()
         left_layout.addWidget(ui_label)
         left_layout.addWidget(ui_combo)
