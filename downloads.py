@@ -141,6 +141,57 @@ class DownloadProjectsThread(QThread):
         except Exception as e:
             self.error_message.emit(f"An error occurred: {e}")
 
+class DownloadFeaturesThread(QThread):
+    update_message = pyqtSignal(str)
+    progress_update = pyqtSignal(int, str)
+    error_message = pyqtSignal(str)
+
+    def __init__(self, dialog, parent=None):
+        super().__init__(parent)
+        self.dialog = dialog
+
+    def run(self):
+        url = 'http://takeitideas.in/Downloads/RDF_Features.zip'
+        
+        base_folder = os.path.dirname(os.path.abspath(sys.argv[0]))
+        local_folder_path = os.path.join(base_folder, 'RDF_Features')
+        zip_file_path = os.path.join(base_folder, 'RDF_Features.zip')
+
+        is_update = os.path.exists(local_folder_path)
+
+        try:
+            response = requests.get(url, stream=True)
+
+            if response.status_code == 200:
+                with open(zip_file_path, 'wb') as file:
+                    total_length = int(response.headers.get('content-length'))
+                    downloaded = 0
+
+                    for chunk in response.iter_content(chunk_size=1024):
+                        if chunk:
+                            file.write(chunk)
+                            downloaded += len(chunk)
+                            progress = int(100 * downloaded / total_length)
+                            self.progress_update.emit(progress, "Downloading RDF_Features.zip")
+            else:
+                self.error_message.emit(f"Failed to download the file. Status code: {response.status_code}")
+                return
+
+            if os.path.exists(zip_file_path):
+                import zipfile
+                with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
+                    zip_ref.extractall(local_folder_path)
+                os.remove(zip_file_path)
+
+                if is_update:
+                    self.update_message.emit("RDF_Features folder updated successfully!")
+                else:
+                    self.update_message.emit("RDF_Features folder downloaded successfully!")
+            else:
+                self.error_message.emit(f"Failed to find the downloaded zip file.")
+        except Exception as e:
+            self.error_message.emit(f"An error occurred: {e}")
+
 class DownloadDailog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
