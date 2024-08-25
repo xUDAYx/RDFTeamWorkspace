@@ -389,7 +389,7 @@ class CodeEditor(QMainWindow):
 
             update_menu = QMenu("update",self)
 
-            self.boilerplate_update_action = QAction("update boilerplate")
+            self.boilerplate_update_action = QAction("Update Boilerplate")
             self.boilerplate_update_action.triggered.connect(self.Download_boilerPlate)
 
             self.ui_Update_action = QAction("Update Ui's")
@@ -409,7 +409,7 @@ class CodeEditor(QMainWindow):
 
 
             update_button = QToolButton(self)
-            update_button.setText("update")
+            update_button.setText("Update")
             update_button.setMenu(update_menu)
             update_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
             update_button.setStyleSheet("QToolButton::menu-indicator { image: none; }")
