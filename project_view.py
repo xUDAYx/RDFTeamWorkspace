@@ -412,7 +412,7 @@ class ProjectView(QWidget):
 
         merge_project_button = QPushButton("Merge Project")
         merge_project_button.setStyleSheet("background-color: #4CAF50; color: white; border: none; border-radius: 5px; padding: 5px;")
-        merge_project_button.clicked.connect(self.select_workspace)
+        merge_project_button.clicked.connect(self.open_project_merger)
         merge_project_button.setMaximumWidth(150)
         merge_project_button.setCursor(Qt.CursorShape.PointingHandCursor)
 
@@ -1535,6 +1535,203 @@ class ProjectView(QWidget):
                     self.mobile_view.setHtml(html_content)
         except Exception as e:
             print(f"Error updating mobile view: {e}")
+
+    def open_project_merger(self):
+        """
+        Opens the Project merger dialog where the user can select and merge projects and preview UI files.
+        """
+        # Define the base directory for projects
+        projects_dir = resource_path('RDF_Projects')
+        if not os.path.exists(projects_dir):
+            QMessageBox.warning(self, "Directory Not Found", f"Directory '{projects_dir}' not found. Please update features from the toolbar.")
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Project Merger")
+        dialog.setGeometry(500, 180, 500, 600)  # Adjusted for a larger dialog
+
+        main_layout = QHBoxLayout()  # Main layout: Horizontal layout for left and right sections
+        dialog.setLayout(main_layout)
+
+        # Left Layout: Vertical layout for Project ComboBox, UI ComboBox, and Merge Button
+        left_layout = QVBoxLayout()
+        left_layout.setSpacing(20)  # Add spacing between widgets
+        left_layout.setContentsMargins(20, 20, 20, 20)  # Add margins around the layout
+
+        # Project ComboBox
+        project_label = QLabel("Select Project:")
+        self.project_combo = QComboBox()
+        self.project_combo.setPlaceholderText("Select Project") 
+        self.populate_projects(self.project_combo)  # Populate QComboBox with project names
+        self.project_combo.currentIndexChanged.connect(lambda: self.update_ui_files(self.project_combo, ui_combo))  # Update UI files based on selected project
+        left_layout.addWidget(project_label)
+        left_layout.addWidget(self.project_combo)
+
+        # UI File ComboBox
+        ui_label = QLabel("Select UI File:")
+        ui_combo = QComboBox()
+        left_layout.addWidget(ui_label)
+        left_layout.addWidget(ui_combo)
+
+        # Mobile View Layout: To make sure it aligns with the rest of the UI
+        mobile_view_layout = QVBoxLayout()
+        self.Mobile_label = QLabel("Preview:")
+        self.mobile_view = QWebEngineView()
+        self.mobile_view.setFixedSize(300, 500)
+        self.mobile_view.setStyleSheet("border: 2px solid black; border-radius: 4px;")
+        mobile_view_layout.addWidget(self.Mobile_label)
+        mobile_view_layout.addWidget(self.mobile_view)
+        mobile_view_layout.addStretch()  # Add stretch to push the mobile view to the top of its layout
+
+        # Merge Button
+        merge_button = QPushButton("Merge Project")
+        merge_button.clicked.connect(lambda: self.merge_selected_project(self.project_combo, dialog))
+        merge_button.setFixedHeight(40)  # Set a fixed height for the button
+        left_layout.addStretch()  # Add stretch to push the merge button to the bottom
+        left_layout.addWidget(merge_button)
+
+        # Right Layout: Vertical layout for Mobile View
+        right_layout = QVBoxLayout()
+        right_layout.addLayout(mobile_view_layout)  # Include mobile view layout
+
+        main_layout.addLayout(left_layout, 1)  # Add left section to the main layout with stretch factor 1
+        main_layout.addLayout(right_layout, 3)  # Add right section to the main layout with stretch factor 3
+
+        # Connect UI ComboBox to update mobile view
+        ui_combo.currentIndexChanged.connect(lambda: self.update_mobile_view(ui_combo.currentText()))
+
+        # Apply modern CSS styles
+        dialog.setStyleSheet("""
+            QDialog {
+                color: #ffffff;
+                font-family: 'Arial', sans-serif;
+            }
+            QLabel {
+                font-size: 16px;
+            }
+            QComboBox {
+                padding: 8px;
+                font-size: 14px;
+                border: 1px solid #cccccc;
+                border-radius: 4px;
+                background-color: #ffffff;
+                color: #000000;
+            }
+            QPushButton {
+                padding: 10px;
+                font-size: 14px;
+                border: none;
+                border-radius: 4px;
+                background-color: #4CAF50;
+                color: white;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+
+        dialog.exec()
+
+
+    def populate_projects(self, project_combo):
+        """
+        Populates the QComboBox with project names from the 'RDF_Projects' directory.
+        """
+        project_combo.clear()
+        projects_dir = resource_path('RDF_Projects')
+        if not os.path.exists(projects_dir):
+            QMessageBox.warning(self, "Directory Not Found", f"Directory '{projects_dir}' not found. Please update features from the toolbar.")
+            return
+
+        projects = [project for project in os.listdir(projects_dir) if os.path.isdir(os.path.join(projects_dir, project))]
+        project_combo.addItems(projects)
+
+    def update_ui_files(self, project_combo, ui_combo):
+        """
+        Updates the UI files QComboBox based on the selected project.
+        """
+        ui_combo.clear()
+        selected_project = project_combo.currentText()
+        if not selected_project:
+            return
+
+        project_ui_dir = os.path.join(resource_path('RDF_Projects'), selected_project, 'RDF_UI')
+        if os.path.exists(project_ui_dir):
+            ui_files = [f for f in os.listdir(project_ui_dir) if f.endswith('.php')]
+            ui_combo.addItems(ui_files)
+            # Set the first item in the UI ComboBox as the selected item and update the mobile view
+            if ui_files:
+                ui_combo.setCurrentIndex(0)
+                self.update_mobile_view(ui_combo.currentText())
+        else:
+            QMessageBox.warning(self, "UI Files Not Found", f"No 'RDF_UI' directory found in the selected project.")
+
+    def merge_selected_project(self, project_combo, dialog):
+        """
+        Merges the selected project into the currently opened project.
+        """
+        if not hasattr(self, 'folder_path') or not self.folder_path:
+            QMessageBox.warning(self, "Project Not Opened", "Open a project first to merge.")
+            return
+
+        selected_project = self.project_combo.currentText()
+        if not selected_project:
+            QMessageBox.warning(self, "No Project Selected", "Please select a project to merge.")
+            return
+
+        # Define the directory paths
+        src_project_dir = os.path.join(resource_path('RDF_Projects'), selected_project)
+        dst_project_dir = self.folder_path
+
+        try:
+            # Copy the entire project structure
+            for folder in ['RDF_UI', 'RDF_ACTION', 'RDF_BW', 'RDF_BVO', 'RDF_DATA']:
+                src_folder_path = os.path.join(src_project_dir, folder)
+                dst_folder_path = os.path.join(dst_project_dir, folder)
+
+                if os.path.exists(src_folder_path):
+                    os.makedirs(dst_folder_path, exist_ok=True)
+                    for item in os.listdir(src_folder_path):
+                        src_item = os.path.join(src_folder_path, item)
+                        dst_item = os.path.join(dst_folder_path, item)
+                        if os.path.isfile(src_item):
+                            shutil.copy2(src_item, dst_item)
+
+            # Update the UI view and show a success message
+            QMessageBox.information(self, "Merge Successful", f"Project '{selected_project}' merged successfully!")
+            self.refresh_directory()
+            dialog.accept()
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"An error occurred while merging the project: {str(e)}")
+
+    def update_mobile_view(self, selected_ui_file):
+        """
+        Updates the mobile view with the selected UI file's content.
+        """
+        if not selected_ui_file:
+            return
+
+        selected_project = self.project_combo.currentText()
+        if not selected_project:
+            return
+
+        project_ui_dir = os.path.join(resource_path('RDF_Projects'), selected_project, 'RDF_UI')
+        file_path = os.path.join(project_ui_dir, selected_ui_file)
+
+        if os.path.exists(file_path):
+            try:
+                with open(file_path, 'r', encoding='utf-8') as file:
+                    html_content = file.read()
+                    self.mobile_view.setHtml(html_content)
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"An error occurred while reading the UI file: {str(e)}")
+        else:
+            QMessageBox.warning(self, "File Not Found", f"UI file '{selected_ui_file}' not found.")
+
+
+
+
 
 
    
