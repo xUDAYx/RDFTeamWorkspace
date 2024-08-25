@@ -16,10 +16,13 @@ CURRENT_PROJECT_PATH = None
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        base_path = sys._MEIPASS
-    except AttributeError:
+    if getattr(sys, 'frozen', False):
+        # Running in a bundle, use the directory of the executable
+        base_path = os.path.dirname(sys.executable)
+    else:
+        # Running in development mode
         base_path = os.path.abspath(".")
+        
     return os.path.join(base_path, relative_path)
 
 def find_files(file_contents, pattern):
@@ -1433,12 +1436,13 @@ class ProjectView(QWidget):
 
     def resource_path(relative_path):
         """ Get absolute path to resource, works for dev and for PyInstaller """
-        try:
-            # PyInstaller creates a temp folder and stores the path in _MEIPASS
-            base_path = sys._MEIPASS
-        except Exception:
+        if getattr(sys, 'frozen', False):
+            # Running in a bundle, use the directory of the executable
+            base_path = os.path.dirname(sys.executable)
+        else:
+            # Running in development mode
             base_path = os.path.abspath(".")
-
+            
         return os.path.join(base_path, relative_path)
 
     def populate_ui_files(self, ui_file_list):
