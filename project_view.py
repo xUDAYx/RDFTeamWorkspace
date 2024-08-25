@@ -1347,6 +1347,10 @@ class ProjectView(QWidget):
         """
         Opens the UI merger dialog where the user can select and merge UI files.
         """
+        ui_files_dir = resource_path('RDF_UI')
+        if not os.path.exists(ui_files_dir):
+            QMessageBox.warning(self, "Directory Not Found", f"Directory '{ui_files_dir}' not found.please update Ui's from the toolbar")
+            return
         dialog = QDialog(self)
         dialog.setWindowTitle("UI Merger")
         dialog.setGeometry(530, 180, 500, 600)
@@ -1439,16 +1443,18 @@ class ProjectView(QWidget):
 
     def populate_ui_files(self, ui_file_list):
         """
-        Populates the QListWidget with UI files from the 'C:/xampp/htdocs/RDFProjects_ROOT/RDF_UIProjects' directory.
+        Populates the QListWidget with UI files from the 'RDF_UI' directory relative to the base directory.
         """
-        ui_files_dir = resource_path('C:/xampp/htdocs/RDFProjects_ROOT/RDF_UIProjects/RDF_UI')
+        ui_files_dir = resource_path('RDF_UI')
         if not os.path.exists(ui_files_dir):
-            QMessageBox.warning(self, "Directory Not Found", f"Directory '{ui_files_dir}' not found.")
+            QMessageBox.warning(self, "Directory Not Found", f"Directory '{ui_files_dir}' not found,Please Update Ui from the Tooldar")
+            
             return
 
         ui_files = [f for f in os.listdir(ui_files_dir) if f.endswith('.php')]
         ui_file_list.clear()
         ui_file_list.addItems(ui_files)
+
 
     def merge_ui_files(self, ui_file_list, dialog):
         if not hasattr(self, 'folder_path') or not self.folder_path:
@@ -1468,7 +1474,7 @@ class ProjectView(QWidget):
             QMessageBox.warning(self, "No UI File Selected", "Please select a UI file to merge.")
             return
 
-        src_file = resource_path(os.path.join('C:/xampp/htdocs/RDFProjects_ROOT/RDF_UIProjects/RDF_UI', selected_ui_file))
+        src_file = resource_path(os.path.join('RDF_UI', selected_ui_file))
         dst_dir = os.path.join(project_path, 'RDF_UI')
         os.makedirs(dst_dir, exist_ok=True)
         dst_file = os.path.join(dst_dir, selected_ui_file)
@@ -1477,13 +1483,13 @@ class ProjectView(QWidget):
             shutil.copy(src_file, dst_file)
             QMessageBox.information(self, "Success", f"UI file '{selected_ui_file}' merged successfully!")
             self.file_double_clicked.emit(dst_file)
-            print(dst_file)
             dialog.accept()
 
         except Exception as e:
             QMessageBox.critical(self, "Error", f"An error occurred while merging the UI file: {str(e)}")
 
         self.refresh_directory()
+
 
     def update_mobile_view(self, selected_ui_file):
         if not selected_ui_file:
@@ -1493,7 +1499,7 @@ class ProjectView(QWidget):
         if not selected_ui_file.endswith('.php'):
             selected_ui_file += '.php'
 
-        sample_ui_dir = resource_path('C:/xampp/htdocs/RDFProjects_ROOT/RDF_UIProjects/RDF_UI')
+        sample_ui_dir = resource_path('RDF_UI')
         file_path = os.path.normpath(os.path.join(sample_ui_dir, selected_ui_file))
 
         print(f"Loading UI file from: {file_path}")  # Debug: Print the file path
@@ -1504,5 +1510,6 @@ class ProjectView(QWidget):
                     self.mobile_view.setHtml(html_content)
         except Exception as e:
             print(f"Error updating mobile view: {e}")
+
 
    
