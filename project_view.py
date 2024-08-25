@@ -1680,7 +1680,7 @@ class ProjectView(QWidget):
             return
 
         # Define the directory paths
-        src_project_dir = os.path.join(resource_path('RDF_Projects'), selected_project)
+        src_project_dir = os.path.join('C:/xampp/htdocs/RDFProjects_ROOT', selected_project)
         dst_project_dir = self.folder_path
 
         try:
