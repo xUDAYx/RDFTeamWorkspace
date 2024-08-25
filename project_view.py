@@ -410,13 +410,13 @@ class ProjectView(QWidget):
         refresh_button.clicked.connect(self.refresh_directory)
         button_layout.addWidget(refresh_button)
 
-        open_another_project_button = QPushButton("Open Another Project")
-        open_another_project_button.setStyleSheet("background-color: #4CAF50; color: white; border: none; border-radius: 5px; padding: 5px;")
-        open_another_project_button.clicked.connect(self.select_workspace)
-        open_another_project_button.setMaximumWidth(150)
-        open_another_project_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        merge_project_button = QPushButton("Merge Project")
+        merge_project_button.setStyleSheet("background-color: #4CAF50; color: white; border: none; border-radius: 5px; padding: 5px;")
+        merge_project_button.clicked.connect(self.select_workspace)
+        merge_project_button.setMaximumWidth(150)
+        merge_project_button.setCursor(Qt.CursorShape.PointingHandCursor)
 
-        button_layout.addWidget(open_another_project_button)
+        button_layout.addWidget(merge_project_button)
 
         layout.addLayout(button_layout)
 
@@ -754,6 +754,16 @@ class ProjectView(QWidget):
         """
         Opens the Feature merger dialog where the user can select and merge projects ending with '_feature'.
         """
+        if getattr(sys, 'frozen', False):  # If the application is run as a bundled exe
+            base_path = os.path.dirname(sys.executable)
+        else:
+            base_path = os.path.abspath(".")
+        feature_directory = os.path.join(base_path, "RDF_Features")
+
+        if not os.path.exists(feature_directory):
+            QMessageBox.warning(self, "RDF_Features Not Found", 
+                                "The RDF_Features folder does not exist. Please update features from the toolbar.")
+            return
         dialog = QDialog(self)
         dialog.setWindowTitle("Feature Merger")
         dialog.setGeometry(530, 180, 200, 200)
@@ -822,26 +832,37 @@ class ProjectView(QWidget):
 
     def populate_feature_files(self, feature_file_list):
         """
-        Populates the QListWidget with projects ending with '_feature'.
+        Populates the QListWidget with all projects inside the RDF_Features folder.
+        If the folder doesn't exist, prompts the user to update features from the toolbar.
         """
         # Determine the base path depending on the execution environment
-        base_path = getattr(sys, '_MEIPASS', os.path.abspath("."))
+        if getattr(sys, 'frozen', False):  # If the application is run as a bundled exe
+            base_path = os.path.dirname(sys.executable)
+        else:
+            base_path = os.path.abspath(".")
 
-        # Define the directory path where projects are located
-        project_directory = os.path.join(base_path, "c:/xampp/htdocs/RDFProjects_ROOT")
+        # Define the directory path where RDF_Features are located
+        feature_directory = os.path.join(base_path, "RDF_Features")
+
+        # Check if the RDF_Features directory exists
+        if not os.path.exists(feature_directory):
+            QMessageBox.warning(self, "RDF_Features Not Found", 
+                                "The RDF_Features folder does not exist. Please update features from the toolbar.")
+            return
 
         # Clear the list before populating
         feature_file_list.clear()
 
         try:
-            # List all directories in the project_directory
-            for project_name in os.listdir(project_directory):
-                project_path = os.path.join(project_directory, project_name)
-                if project_name.endswith('_Feature') and os.path.isdir(project_path):   
+            # List all directories in the feature_directory
+            for project_name in os.listdir(feature_directory):
+                project_path = os.path.join(feature_directory, project_name)
+                if os.path.isdir(project_path):
                     feature_file_list.addItem(project_name)
         except Exception as e:
             print(f"Error populating feature files: {e}")
             QMessageBox.critical(self, "Error", "Failed to load feature projects.")
+
 
     def merge_selected_feature(self, feature_file_list, dialog):
         if not hasattr(self, 'folder_path') or not self.folder_path:
