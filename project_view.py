@@ -1635,10 +1635,10 @@ class ProjectView(QWidget):
 
     def populate_projects(self, project_combo):
         """
-        Populates the QComboBox with project names from the 'RDF_Projects' directory.
+        Populates the QComboBox with project names from the 'RDFProjects_ROOT' directory.
         """
         project_combo.clear()
-        projects_dir = resource_path('RDF_Projects')
+        projects_dir = 'C:/xampp/htdocs/RDFProjects_ROOT'
         if not os.path.exists(projects_dir):
             QMessageBox.warning(self, "Directory Not Found", f"Directory '{projects_dir}' not found. Please update features from the toolbar.")
             return
@@ -1655,14 +1655,14 @@ class ProjectView(QWidget):
         if not selected_project:
             return
 
-        project_ui_dir = os.path.join(resource_path('RDF_Projects'), selected_project, 'RDF_UI')
+        project_ui_dir = os.path.join('C:/xampp/htdocs/RDFProjects_ROOT', selected_project, 'RDF_UI')
         if os.path.exists(project_ui_dir):
             ui_files = [f for f in os.listdir(project_ui_dir) if f.endswith('.php')]
             ui_combo.addItems(ui_files)
             # Set the first item in the UI ComboBox as the selected item and update the mobile view
             if ui_files:
                 ui_combo.setCurrentIndex(0)
-                self.update_mobile_view(ui_combo.currentText())
+                self.update_Project_mobile_view(ui_combo.currentText())
         else:
             QMessageBox.warning(self, "UI Files Not Found", f"No 'RDF_UI' directory found in the selected project.")
 
@@ -1716,7 +1716,7 @@ class ProjectView(QWidget):
         if not selected_project:
             return
 
-        project_ui_dir = os.path.join(resource_path('RDF_Projects'), selected_project, 'RDF_UI')
+        project_ui_dir = os.path.join('C:/xampp/htdocs/RDFProjects_ROOT', selected_project, 'RDF_UI')
         file_path = os.path.join(project_ui_dir, selected_ui_file)
 
         if os.path.exists(file_path):

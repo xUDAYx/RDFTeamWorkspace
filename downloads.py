@@ -102,18 +102,17 @@ class DownloadProjectsThread(QThread):
     def run(self):
         url = 'http://takeitideas.in/Downloads/RDF_Projects.zip'
         
-        base_folder = os.path.dirname(os.path.abspath(sys.argv[0]))
-        local_folder_path = os.path.join(base_folder, 'RDF_projects')
-        zip_file_path = os.path.join(base_folder, 'RDF_projects.zip')
-
-        is_update = os.path.exists(local_folder_path)
+        # Define the path for the ZIP file and extraction folder
+        base_folder = 'C:/xampp/htdocs'  # Base directory where the extraction should happen
+        local_folder_path = os.path.join(base_folder, 'RDFProjects_ROOT')  # Target extraction folder
+        zip_file_path = os.path.join(base_folder, 'RDF_Projects.zip')
 
         try:
+            # Download the ZIP file
             response = requests.get(url, stream=True)
-
             if response.status_code == 200:
                 with open(zip_file_path, 'wb') as file:
-                    total_length = int(response.headers.get('content-length'))
+                    total_length = int(response.headers.get('content-length', 0))
                     downloaded = 0
 
                     for chunk in response.iter_content(chunk_size=1024):
@@ -121,25 +120,28 @@ class DownloadProjectsThread(QThread):
                             file.write(chunk)
                             downloaded += len(chunk)
                             progress = int(100 * downloaded / total_length)
-                            self.progress_update.emit(progress, "Downloading RDF_projects.zip")
+                            self.progress_update.emit(progress, "Downloading RDF_Projects.zip")
             else:
                 self.error_message.emit(f"Failed to download the file. Status code: {response.status_code}")
                 return
 
+            # Ensure the extraction folder exists
+            if not os.path.exists(local_folder_path):
+                os.makedirs(local_folder_path)
+
+            # Extract the ZIP file
             if os.path.exists(zip_file_path):
                 import zipfile
                 with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
                     zip_ref.extractall(local_folder_path)
                 os.remove(zip_file_path)
 
-                if is_update:
-                    self.update_message.emit("RDF_projects folder updated successfully!")
-                else:
-                    self.update_message.emit("RDF_projects folder downloaded successfully!")
+                self.update_message.emit("RDF_Projects folder extracted successfully!")
             else:
                 self.error_message.emit(f"Failed to find the downloaded zip file.")
         except Exception as e:
             self.error_message.emit(f"An error occurred: {e}")
+
 
 class DownloadFeaturesThread(QThread):
     update_message = pyqtSignal(str)
