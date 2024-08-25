@@ -29,7 +29,7 @@ from OpenProject import OpenProjectWizard
 from ref_view import ReferenceView
 from publish import PublishWizard
 from file_view import FileView
-from downloads import Download,DownloadThread,DownloadDailog
+from downloads import Download,DownloadThread,DownloadDailog,DownloadProjectsThread
 
 class MultiLanguageHighlighter(QsciAbstractAPIs):
     def __init__(self, editor: QsciScintilla):
@@ -395,8 +395,12 @@ class CodeEditor(QMainWindow):
             self.ui_Update_action = QAction("Update Ui's")
             self.ui_Update_action.triggered.connect(self.update_Ui)
 
+            self.project_download_action =QAction("Update Projects")
+            self.project_download_action.triggered.connect(self.Download_projects)
+
             update_menu.addAction(self.boilerplate_update_action)
             update_menu.addAction(self.ui_Update_action)
+            update_menu.addAction(self.project_download_action)
             
 
 
@@ -471,6 +475,17 @@ class CodeEditor(QMainWindow):
         self.download_dialog.show()
         self.Downloader.update_boilerplate()
         self.download_dialog.accept()
+
+    def Download_projects(self):
+        self.download_dialog = DownloadDailog(self)
+        self.download_thread = DownloadProjectsThread(self.download_dialog)
+        self.download_thread.progress_update.connect(self.download_dialog.update_progress)
+        self.download_thread.update_message.connect(self.show_success_message)
+        self.download_thread.error_message.connect(self.show_error_message)
+        self.download_thread.update_message.connect(self.download_dialog.accept)
+        self.download_dialog.show()
+        self.download_thread.start()
+        
     
     def update_Ui(self):
         self.download_dialog = DownloadDailog(self)
