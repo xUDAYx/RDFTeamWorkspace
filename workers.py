@@ -4,7 +4,7 @@ from PIL.ImageQt import ImageQt
 from io import BytesIO
 from PyQt6.QtGui import QImage, QPixmap
 from PyQt6.QtGui import QGuiApplication
-import pythoncom
+
 
 class QRCodeWorker(QThread):
     finished = pyqtSignal(QPixmap, str)
