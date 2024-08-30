@@ -1,18 +1,3 @@
-# import openai
-
-# # Replace with your actual OpenAI API key
-# openai.api_key = "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"
-
-# response = openai.ChatCompletion.create(
-#     model="gpt-3.5-turbo",
-#     messages=[
-#         {"role": "user", "content": "write a haiku about ai"}
-#     ]
-# )
-
-# # Extract the generated text
-# completion = response.choices[0].message["content"]
-# print(completion)
 
 import sys
 from PyQt6.QtWidgets import QApplication, QVBoxLayout, QWidget
