@@ -84,6 +84,11 @@ class MobileView(QWidget):
 
             self.bookmark_wizard = BookmarkWizard()
             self.bookmark_wizard.urlClicked.connect(self.load_bookmark_preview)
+
+            self.TimeTrackView = QWebEngineView()
+            self.TimeTrackView.setFixedWidth(200)
+            self.TimeTrackView.setFixedHeight(20)
+            self.layout.addWidget(self.TimeTrackView)
             
             # Create a container widget for the web view
             self.container_widget = QWidget()
@@ -368,7 +373,18 @@ class MobileView(QWidget):
 
             self.web_view.page().profile().downloadRequested.connect(self.handle_download)
         except Exception as e:
-            print(f"An error occurred during initialization: {str(e)}")     
+            print(f"An error occurred during initialization: {str(e)}")  
+
+    def load_time_tracking_url(self, url):
+        if url:  # Ensure URL is not empty
+            print(f"[DEBUG] Loading URL in TimeTrackView: {url}")  # Debug statement
+            qurl = QUrl(url)  # Convert string URL to QUrl
+            if qurl.isValid():  # Check if the URL is valid
+                self.TimeTrackView.setUrl(qurl)
+            else:
+                print(f"[DEBUG] Invalid URL: {url}")
+        else:
+            print("[DEBUG] No URL provided to load in TimeTrackView")   
 
     def set_border_color(self, color):
         if color:
@@ -458,8 +474,6 @@ class MobileView(QWidget):
         except Exception as e:
             print(f"Failed to load bookmark preview: {e}")
             self.web_view.setHtml("<html><body><h1>Failed to load bookmark preview</h1></body></html>")
-
-
 
 
     def show_json_in_tree_view(self, file_path):

@@ -2,11 +2,16 @@ import sys
 import traceback
 import subprocess
 from PyQt6.QtGui import QIcon
-from PyQt6.QtWidgets import QApplication, QMessageBox
-from PyQt6.QtCore import QCoreApplication
-from code_editor import CodeEditor
+from PyQt6.QtWidgets import QApplication, QMessageBox, QCheckBox,  QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton
+from PyQt6.QtCore import Qt,QEvent
+from code_editor import CodeEditor 
+from mobile_view import MobileView # Importing the CodeEditor from the separate module
 import os
 import psutil
+import requests
+import urllib.parse
+from PyQt6.QtCore import QSettings, Qt,pyqtSignal
+from datetime import datetime, timedelta
 
 # Custom exception hook for detailed error reporting
 def excepthook(exc_type, exc_value, exc_traceback):
@@ -16,7 +21,7 @@ def excepthook(exc_type, exc_value, exc_traceback):
     print("Unhandled exception:", exc_type, exc_value)
     traceback.print_tb(exc_traceback)
     QMessageBox.critical(None, "Unhandled Exception", f"An error occurred: {exc_value}")
-    cleanup()  # Ensure cleanup is called in case of an exception
+    cleanup()
 
 # Install the custom exception hook
 sys.excepthook = excepthook
@@ -30,7 +35,6 @@ def is_apache_running():
 def start_xampp():
     if not is_apache_running():
         try:
-            # Replace the path with your XAMPP control panel executable
             subprocess.Popen([r'C:\xampp\xampp-control.exe'])
             print("Starting XAMPP Control Panel...")
         except Exception as e:
@@ -40,21 +44,158 @@ def start_xampp():
 
 def cleanup():
     print("Performing cleanup tasks...")
-    # Add any additional cleanup tasks here if needed
+
+class LoginDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Login")
+        self.setLayout(QVBoxLayout())
+
+        # Username and Password fields
+        self.username_label = QLabel("Email:")
+        self.username_input = QLineEdit()
+        self.password_label = QLabel("Password:")
+        self.password_input = QLineEdit()
+        self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
+
+        # "Remember Me" checkbox
+        self.remember_me_checkbox = QCheckBox("Remember Me")
+
+        # Login button
+        self.login_button = QPushButton("Login")
+        self.login_button.clicked.connect(self.login)
+
+        # Adding widgets to layout
+        self.layout().addWidget(self.username_label)
+        self.layout().addWidget(self.username_input)
+        self.layout().addWidget(self.password_label)
+        self.layout().addWidget(self.password_input)
+        self.layout().addWidget(self.remember_me_checkbox)
+        self.layout().addWidget(self.login_button)
+
+        # Load remembered session if available
+        self.load_remembered_session()
+
+    def login(self):
+        email = self.username_input.text()
+        password = self.password_input.text()
+
+        encoded_email = urllib.parse.quote(email)
+        encoded_password = urllib.parse.quote(password)
+
+        url = f"https://takeitideas.in/RDFSTUDIO/UserValidation/validateUser.php?email={encoded_email}&password={encoded_password}"
+
+        try:
+            response = requests.get(url)
+
+            if response.text.strip() == "1":
+                QMessageBox.information(self, "Login", "Login successful!")
+                if self.remember_me_checkbox.isChecked():
+                    self.remember_user_session(email)
+                self.accept()  # Close dialog and continue
+            else:
+                QMessageBox.warning(self, "Login Failed", "Incorrect email or password.")
+        except requests.RequestException as e:
+            QMessageBox.critical(self, "Error", f"Error connecting to server: {e}")
+
+    def remember_user_session(self, email):
+        settings = QSettings("YourCompany", "YourApp")
+        expiration_time = datetime.now() + timedelta(hours=24)
+        settings.setValue("remembered_email", email)
+        settings.setValue("remembered_expiration", expiration_time.timestamp())
+
+    def load_remembered_session(self):
+        settings = QSettings("YourCompany", "YourApp")
+        remembered_email = settings.value("remembered_email")
+        remembered_expiration = settings.value("remembered_expiration", type=float)
+
+        if remembered_email and remembered_expiration:
+            expiration_time = datetime.fromtimestamp(remembered_expiration)
+            if datetime.now() < expiration_time:
+                # Automatically log in the user if within 24 hours
+                self.username_input.setText(remembered_email)
+                self.remember_me_checkbox.setChecked(True)
+                self.login()
+            else:
+                # Clear the remembered session if expired
+                settings.clear()
+
+class IDEWindow(CodeEditor):
+
+    urlGenerated = pyqtSignal(str) 
+
+    def __init__(self, email):
+        super().__init__()
+        self.email = email
+        self.start_time = None
+        self.end_time = None
+        self.setWindowState(Qt.WindowState.WindowMaximized)
+        self.start_timer()
+        self.installEventFilter(self)
+
+    def start_timer(self):
+        self.start_time = datetime.now()
+        print(f"[DEBUG] Timer started at {self.start_time}")  # Debug statement
+
+    def stop_timer(self):
+        if self.start_time:
+            self.end_time = datetime.now()
+            print(f"[DEBUG] Timer stopped at {self.end_time}")  # Debug statement
+            self.send_time_data(self.start_time, self.end_time)
+            self.start_time = None
+
+    def send_time_data(self, start_time, end_time):
+        encoded_email = urllib.parse.quote(self.email)
+        start_timestamp = int(start_time.timestamp())
+        end_timestamp = int(end_time.timestamp())
+
+        url = f"https://takeitideas.in/RDFSTUDIO/UserTimeTracking/timemanagement.php?email={encoded_email}&startTime={start_timestamp}&endTime={end_timestamp}"
+        print(f"[DEBUG] Sending data to URL: {url}")  # Debug statement
+
+        try:
+            response = requests.get(url)
+            print(f"[DEBUG] Server response: {response.text} (Status code: {response.status_code})")  # Debug statement
+            if response.status_code == 200:
+                print(f"[DEBUG] Time data sent successfully")
+                self.urlGenerated.emit(url)
+            else:
+                print(f"[DEBUG] Failed to send time data: {response.status_code}")
+        except requests.RequestException as e:
+            print(f"[DEBUG] Error sending time data: {e}")
+
+    def eventFilter(self, source, event):
+        if event.type() == QEvent.Type.WindowStateChange:
+            if self.windowState() & Qt.WindowState.WindowMinimized:
+                self.stop_timer()
+            elif self.windowState() & Qt.WindowState.WindowMaximized:
+                self.start_timer()
+        elif event.type() == QEvent.Type.Close:
+            self.stop_timer()
+
+        return super().eventFilter(source, event)
 
 if __name__ == "__main__":
-    try:
-        app = QApplication(sys.argv)
-        editor = CodeEditor()
-        editor.show()
-        app.setWindowIcon(QIcon(r"E:\RDFTeamWorkspace\icon\rdf_icon.ico"))
-
-        start_xampp()
+    app = QApplication(sys.argv)
+    
+    # Show login dialog first
+    login_dialog = LoginDialog()
+    if login_dialog.exec() == QDialog.DialogCode.Accepted:
+        # Start the IDE if login is successful
+        main_window = IDEWindow(login_dialog.username_input.text())
+        main_window.show()
         
-        # Ensure cleanup is called on exit
-        app.aboutToQuit.connect(cleanup)
+        # Create an instance of MobileView
+        mobile_view = MobileView()
+        
+        # Connect the signal to the slot
+        try:
+            main_window.urlGenerated.connect(mobile_view.load_time_tracking_url)
+        except Exception as e:
+            QMessageBox.warning("error",f"error updating mobile view{e}")
 
-        sys.exit(app.exec())
-    except Exception as e:
-        QMessageBox.warning(None, "Error", f"Error running application: {e}")
-        cleanup()  # Ensure cleanup is called in case of an exception
+        
+        # Optionally show the mobile view if needed
+       
+    
+    # Start the event loop
+    sys.exit(app.exec())

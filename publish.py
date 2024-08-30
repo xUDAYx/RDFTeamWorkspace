@@ -110,12 +110,41 @@ class UploadThread(QThread):
                 except Exception as e:
                     print(f"Failed to close FTP connection: {e}")
 
-class ProjectInfoPage(QWizardPage):
-    def __init__(self, parent=None):
+class PublishWizard(QWizard):
+    def __init__(self, current_tab, parent=None):
         super().__init__(parent)
-        self.setTitle('Project Details')
+        self.current_tab = current_tab
 
-        self.registerField("upload_dir*", self)
+        # Define upload_dir using the get_upload_directory method
+        self.upload_dir = self.get_upload_directory()
+
+        self.setButtonLayout([
+            QWizard.WizardButton.Stretch,
+            QWizard.WizardButton.BackButton,
+            QWizard.WizardButton.CancelButton,
+        ])
+
+        # Ensure the file_path is valid before initializing pages
+        if not self.current_tab.file_path:
+            QMessageBox.warning(self, 'Error', 'No file selected for upload.')
+            self.reject()
+            return
+
+        # Initialize wizard pages
+        self.project_info_page = ProjectInfoPage(self.upload_dir)
+        self.addPage(self.project_info_page)
+
+    def get_upload_directory(self):
+        if self.current_tab.file_path:
+            return os.path.dirname(os.path.dirname(self.current_tab.file_path))
+        return None
+
+
+class ProjectInfoPage(QWizardPage):
+    def __init__(self, upload_dir, parent=None):
+        super().__init__(parent)
+        self.upload_dir = upload_dir
+        self.setTitle('Project Details')
 
         self.layout = QFormLayout()
 
@@ -153,14 +182,16 @@ class ProjectInfoPage(QWizardPage):
         self.banner_layout.addWidget(self.preview_view)
         self.layout.addRow(self.banner_label, self.banner_layout)
 
-        self.registerField("banner_image_path", self.banner_input)
+        self.setLayout(self.layout)
+
         self.registerField("project_title*", self.title_input)
         self.registerField("project_description*", self.description_input)
         self.registerField("version_details*", self.version_input)
         self.registerField("search_keywords*", self.keywords_input)
+        self.registerField("banner_image_path", self.banner_input)
 
-        self.next_button = QPushButton("Next")
-        self.next_button.clicked.connect(self.goto_next_page)
+        self.next_button = QPushButton("Upload")
+        self.next_button.clicked.connect(self.upload)
 
         # Create a QHBoxLayout to hold the button
         button_layout = QHBoxLayout()
@@ -175,64 +206,43 @@ class ProjectInfoPage(QWizardPage):
         self.layout.addRow(button_widget)
         self.setLayout(self.layout)
 
+        self.load_project_info()
+
+    def load_project_info(self):
+        project_info_path = os.path.join(self.upload_dir, "ProjectInfo.json")
+        if os.path.exists(project_info_path):
+            with open(project_info_path, 'r') as f:
+                project_info = json.load(f)
+
+                self.title_input.setText(project_info.get("title", ""))
+                self.description_input.setText(project_info.get("description", ""))
+                self.version_input.setText(project_info.get("version", ""))
+                self.keywords_input.setText(project_info.get("keywords", ""))
+
+                banner_image_path = os.path.join(self.upload_dir, "banner.png")
+                if os.path.exists(banner_image_path):
+                    self.banner_input.setText(banner_image_path)
+                    self.show_image_preview(banner_image_path)
+                else:
+                    self.banner_input.setText("")
+
     def choose_image(self):
-    # Open file dialog to choose an image
         image_path, _ = QFileDialog.getOpenFileName(
-            self, 
-            "Select Banner Image", 
-            QDir.homePath(),  # Starting directory
-            "Images (*.png *.jpg *.bmp)"  # File filter
+            self,
+            "Select Banner Image",
+            QDir.homePath(),
+            "Images (*.png *.jpg *.bmp)"
         )
-        
-        # Check if a file was selected
         if image_path:
-            # Show a preview of the selected image
             self.show_image_preview(image_path)
-            
-            # Set the banner_image_path field to the selected image path
-            self.setField("banner_image_path", image_path)  # Set the field for banner image
+            self.banner_input.setText(image_path)
+            self.setField("banner_image_path", image_path)
 
     def show_image_preview(self, image_path):
         pixmap = QPixmap(image_path)
-        self.preview_scene = QGraphicsScene(self)
+        self.preview_scene.clear()
         self.preview_scene.addPixmap(pixmap)
-        self.preview_view.setScene(self.preview_scene)
-        self.preview_view.fitInView(self.preview_scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio) 
-        
-    def goto_next_page(self):
-        self.wizard().next()
-
-    def validatePage(self):
-        return True
-
-    def nextId(self):
-        return 1  # ID of the next page (FTP credentials page)
-
-
-class FtpCredentialsPage(QWizardPage):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setTitle('FTP Credentials')
-
-        self.layout = QFormLayout()
-        self.username_input = QLineEdit()
-        self.password_input = QLineEdit()
-        self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.upload_button = QPushButton("Upload")
-
-        upload_button_layout = QHBoxLayout()
-        upload_button_layout.addStretch()
-        upload_button_layout.addWidget(self.upload_button)
-
-        upload_widget = QWidget()
-        upload_widget.setLayout(upload_button_layout)
-
-        self.layout.addRow("Username:", self.username_input)
-        self.layout.addRow("Password:", self.password_input)
-        self.layout.addWidget(upload_widget)
-        self.setLayout(self.layout)
-
-        self.upload_button.clicked.connect(self.upload)
+        self.preview_view.fitInView(self.preview_scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
 
     def upload(self):
         wizard = self.wizard()
@@ -242,17 +252,12 @@ class FtpCredentialsPage(QWizardPage):
         search_keywords = wizard.field("search_keywords")
         banner_image_path = wizard.field("banner_image_path")
 
-        username = self.username_input.text()
-        password = self.password_input.text()
+        username = "u257313635"
+        password = "Vijaysss@123"
 
         upload_dir = wizard.get_upload_directory()
 
         if upload_dir:
-            # Validate FTP credentials before proceeding
-            if not self.validate_ftp_credentials('ftp.takeitideas.in', username, password):
-                QMessageBox.warning(self, 'Error', 'Invalid FTP credentials.')
-                return
-
             project_name = os.path.basename(upload_dir)
 
             # Show the progress dialog
@@ -274,15 +279,19 @@ class FtpCredentialsPage(QWizardPage):
                 json.dump(project_info, f, indent=4)
                 f.truncate()
 
+            # Check if banner image already exists at destination
+            banner_dest_path = os.path.join(upload_dir, "banner.png")
             if banner_image_path:
                 if os.path.isfile(banner_image_path):
-                    banner_dest_path = os.path.join(upload_dir, "banner.png")
-                    try:
-                        shutil.copy(banner_image_path, banner_dest_path)
-                    except FileNotFoundError:
-                        QMessageBox.critical(self, "Error", f"Banner image file not found: {banner_image_path}")
-                    except Exception as e:
-                        QMessageBox.critical(self, "Error", f"Failed to copy banner image: {e}")
+                    if not os.path.isfile(banner_dest_path):
+                        try:
+                            shutil.copy(banner_image_path, banner_dest_path)
+                        except FileNotFoundError:
+                            QMessageBox.critical(self, "Error", f"Banner image file not found: {banner_image_path}")
+                        except Exception as e:
+                            QMessageBox.critical(self, "Error", f"Failed to copy banner image: {e}")
+                    else:
+                        QMessageBox.information(self, "Info", "Banner image already exists at the destination. Skipping copy.")
                 else:
                     QMessageBox.warning(self, 'Warning', 'Banner image file does not exist.')
             else:
@@ -301,53 +310,15 @@ class FtpCredentialsPage(QWizardPage):
         else:
             QMessageBox.warning(self, 'Error', 'No valid directory for upload.')
 
-    def validate_ftp_credentials(self, server, username, password):
-        """Validate FTP credentials by attempting to connect to the FTP server."""
-        try:
-            ftp = FTP(server)
-            ftp.login(user=username, passwd=password)
-            ftp.quit()  # Disconnect after successful login
-            return True
-        except error_perm:
-            return False  # Permission error, invalid credentials
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Failed to connect to FTP server: {e}")
-            return False
-
     def on_upload_finished(self, success):
         if success:
-        # Show success message box
+            # Show success message box
             QMessageBox.information(self, "Success", "Project uploaded successfully.")
         # Close the progress dialog and the wizard when the upload is complete
         self.publish_dialog.accept()
-        self.wizard().accept()  # Ensure the wizard is also closed
+        self.wizard().accept()
 
 
-
-class PublishWizard(QWizard):
-    def __init__(self, current_tab, parent=None):
-        super().__init__(parent)
-        self.current_tab = current_tab
-
-        self.setButtonLayout([
-            QWizard.WizardButton.Stretch,
-            QWizard.WizardButton.BackButton,
-            QWizard.WizardButton.CancelButton,
-        ])
-
-        # Initialize wizard pages
-        self.addPage(ProjectInfoPage(self))
-        self.addPage(FtpCredentialsPage(self))
-
-        # Ensure the file_path is valid
-        if not self.current_tab.file_path:
-            QMessageBox.warning(self, 'Error', 'No file selected for upload.')
-            self.reject()
-
-    def get_upload_directory(self):
-        if self.current_tab.file_path:
-            return os.path.dirname(os.path.dirname(self.current_tab.file_path))
-        return None
     
 class PublishDialog(QDialog):
     def __init__(self, parent=None):
