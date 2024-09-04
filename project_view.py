@@ -1373,7 +1373,7 @@ class ProjectView(QWidget):
         """
         ui_files_dir = resource_path('RDF_UI')
         if not os.path.exists(ui_files_dir):
-            QMessageBox.warning(self, "Directory Not Found", f"Directory '{ui_files_dir}' not found.please update Ui's from the toolbar")
+            QMessageBox.warning(self, "Directory Not Found", f"UI templates not found. Please update")
             return
         dialog = QDialog(self)
         dialog.setWindowTitle("UI Merger")
