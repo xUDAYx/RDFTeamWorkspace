@@ -120,59 +120,7 @@ class LoginDialog(QDialog):
                 # Clear the remembered session if expired
                 settings.clear()
 
-class IDEWindow(CodeEditor):
 
-    urlGenerated = pyqtSignal(str) 
-
-    def __init__(self, email):
-        super().__init__()
-        self.email = email
-        self.start_time = None
-        self.end_time = None
-        self.setWindowState(Qt.WindowState.WindowMaximized)
-        self.start_timer()
-        self.installEventFilter(self)
-
-    def start_timer(self):
-        self.start_time = datetime.now()
-        print(f"[DEBUG] Timer started at {self.start_time}")  # Debug statement
-
-    def stop_timer(self):
-        if self.start_time:
-            self.end_time = datetime.now()
-            print(f"[DEBUG] Timer stopped at {self.end_time}")  # Debug statement
-            self.send_time_data(self.start_time, self.end_time)
-            self.start_time = None
-
-    def send_time_data(self, start_time, end_time):
-        encoded_email = urllib.parse.quote(self.email)
-        start_timestamp = int(start_time.timestamp())
-        end_timestamp = int(end_time.timestamp())
-
-        url = f"https://takeitideas.in/RDFSTUDIO/UserTimeTracking/timemanagement.php?email={encoded_email}&startTime={start_timestamp}&endTime={end_timestamp}"
-        print(f"[DEBUG] Sending data to URL: {url}")  # Debug statement
-
-        try:
-            response = requests.get(url)
-            print(f"[DEBUG] Server response: {response.text} (Status code: {response.status_code})")  # Debug statement
-            if response.status_code == 200:
-                print(f"[DEBUG] Time data sent successfully")
-                self.urlGenerated.emit(url)
-            else:
-                print(f"[DEBUG] Failed to send time data: {response.status_code}")
-        except requests.RequestException as e:
-            print(f"[DEBUG] Error sending time data: {e}")
-
-    def eventFilter(self, source, event):
-        if event.type() == QEvent.Type.WindowStateChange:
-            if self.windowState() & Qt.WindowState.WindowMinimized:
-                self.stop_timer()
-            elif self.windowState() & Qt.WindowState.WindowMaximized:
-                self.start_timer()
-        elif event.type() == QEvent.Type.Close:
-            self.stop_timer()
-
-        return super().eventFilter(source, event)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
@@ -181,21 +129,8 @@ if __name__ == "__main__":
     login_dialog = LoginDialog()
     if login_dialog.exec() == QDialog.DialogCode.Accepted:
         # Start the IDE if login is successful
-        main_window = IDEWindow(login_dialog.username_input.text())
+        main_window = CodeEditor(login_dialog.username_input.text())
         main_window.show()
-        
-        # Create an instance of MobileView
-        mobile_view = MobileView()
-        
-        # Connect the signal to the slot
-        try:
-            main_window.urlGenerated.connect(mobile_view.load_time_tracking_url)
-        except Exception as e:
-            QMessageBox.warning("error",f"error updating mobile view{e}")
-
-        
-        # Optionally show the mobile view if needed
-       
     
     # Start the event loop
     sys.exit(app.exec())

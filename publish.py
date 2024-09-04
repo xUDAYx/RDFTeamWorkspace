@@ -279,19 +279,16 @@ class ProjectInfoPage(QWizardPage):
                 json.dump(project_info, f, indent=4)
                 f.truncate()
 
-            # Check if banner image already exists at destination
+            # Replace the banner image if it exists
             banner_dest_path = os.path.join(upload_dir, "banner.png")
             if banner_image_path:
                 if os.path.isfile(banner_image_path):
-                    if not os.path.isfile(banner_dest_path):
-                        try:
-                            shutil.copy(banner_image_path, banner_dest_path)
-                        except FileNotFoundError:
-                            QMessageBox.critical(self, "Error", f"Banner image file not found: {banner_image_path}")
-                        except Exception as e:
-                            QMessageBox.critical(self, "Error", f"Failed to copy banner image: {e}")
-                    else:
-                        QMessageBox.information(self, "Info", "Banner image already exists at the destination. Skipping copy.")
+                    try:
+                        shutil.copy(banner_image_path, banner_dest_path)
+                    except FileNotFoundError:
+                        QMessageBox.critical(self, "Error", f"Banner image file not found: {banner_image_path}")
+                    except Exception as e:
+                        QMessageBox.critical(self, "Error", f"Failed to copy banner image: {e}")
                 else:
                     QMessageBox.warning(self, 'Warning', 'Banner image file does not exist.')
             else:
@@ -317,7 +314,6 @@ class ProjectInfoPage(QWizardPage):
         # Close the progress dialog and the wizard when the upload is complete
         self.publish_dialog.accept()
         self.wizard().accept()
-
 
     
 class PublishDialog(QDialog):

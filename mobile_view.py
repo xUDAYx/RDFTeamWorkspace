@@ -376,15 +376,9 @@ class MobileView(QWidget):
             print(f"An error occurred during initialization: {str(e)}")  
 
     def load_time_tracking_url(self, url):
-        if url:  # Ensure URL is not empty
-            print(f"[DEBUG] Loading URL in TimeTrackView: {url}")  # Debug statement
-            qurl = QUrl(url)  # Convert string URL to QUrl
-            if qurl.isValid():  # Check if the URL is valid
-                self.TimeTrackView.setUrl(qurl)
-            else:
-                print(f"[DEBUG] Invalid URL: {url}")
-        else:
-            print("[DEBUG] No URL provided to load in TimeTrackView")   
+        print(f"[DEBUG] Loading URL in mobile view: {url}")  # Debug statement
+        self.TimeTrackView.setUrl(QUrl(url))
+
 
     def set_border_color(self, color):
         if color:

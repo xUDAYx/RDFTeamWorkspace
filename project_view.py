@@ -1541,10 +1541,7 @@ class ProjectView(QWidget):
         Opens the Project merger dialog where the user can select and merge projects and preview UI files.
         """
         # Define the base directory for projects
-        projects_dir = resource_path('RDF_Projects')
-        if not os.path.exists(projects_dir):
-            QMessageBox.warning(self, "Directory Not Found", f"Directory '{projects_dir}' not found. Please update features from the toolbar.")
-            return
+ 
 
         dialog = QDialog(self)
         dialog.setWindowTitle("Project Merger")

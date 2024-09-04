@@ -1,19 +1,22 @@
 import re
-import json
+import json,requests
 import os, sys
-import logging,chardet
+import logging,chardet,subprocess
 import traceback
 from ftplib import FTP,error_perm
+from datetime import datetime, timedelta
+from urllib.parse import urlsplit
+import urllib.parse
+
 import time
 import shutil
-
 from pc_view import PCView
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 from PyQt6.QtGui import QSyntaxHighlighter,QIcon
 from PyQt6.Qsci import QsciDocument
 from PyQt6.QtWidgets import QWizard, QDialog,QPlainTextEdit,QProgressDialog, QProgressBar,QInputDialog,QLabel, QMainWindow,QLineEdit,QMenu, QVBoxLayout, QWidget, QSplitter, QDialogButtonBox, QTreeView, QToolBar, QFileDialog, QToolButton, QTabWidget, QApplication, QMessageBox, QPushButton, QTextEdit, QScrollBar, QHBoxLayout, QSizePolicy
 from PyQt6.QtGui import  QTextCharFormat,QAction, QPixmap, QFileSystemModel, QIcon, QFont, QPainter, QColor, QTextFormat, QTextCursor, QKeySequence, QShortcut
-from PyQt6.QtCore import Qt, QModelIndex, QTimer, QDir,QThread, pyqtSlot, QSize, QRect, QProcess, QPoint, pyqtSignal
+from PyQt6.QtCore import Qt,QEvent, QModelIndex, QSettings,QTimer, QDir,QThread, pyqtSlot, QSize, QRect, QProcess, QPoint, pyqtSignal,QCoreApplication
 from PyQt6.Qsci import QsciScintilla, QsciLexerPython, QsciLexerHTML, QsciLexerJavaScript, QsciLexerCSS
 
 from terminal_widget import TerminalWidget
@@ -29,7 +32,7 @@ from OpenProject import OpenProjectWizard
 from ref_view import ReferenceView
 from publish import PublishWizard
 from file_view import FileView
-from downloads import Download,DownloadThread,DownloadDailog,DownloadProjectsThread,DownloadFeaturesThread
+from downloads import Download,DownloadUIThread,DownloadDailog,DownloadProjectsThread,DownloadFeaturesThread
 
 class MultiLanguageHighlighter(QsciAbstractAPIs):
     def __init__(self, editor: QsciScintilla):
@@ -112,7 +115,7 @@ class CustomCodeEditor(QsciScintilla):
 
         if not os.path.exists(json_path):
             # Show a message box if the boilerplate.json file does not exist
-            QMessageBox.warning(self, "File Not Found", "boilerplate.json does not exist in the same folder as the application.")
+            QMessageBox.warning(self, "File Not Found", "Boiler Plates do not exist. Please update.")
             return
         
         # Create the context menu
@@ -251,12 +254,19 @@ class CustomCodeEditor(QsciScintilla):
     
         
 class CodeEditor(QMainWindow):
-    def __init__(self):
+    urlGenerated = pyqtSignal(str)
+    def __init__(self,email):
         try:
             super().__init__()
             self.setWindowTitle("RDF STUDIO")
             self.showMaximized()
             self.setWindowFlags(Qt.WindowType.Window)
+            self.email = email
+            self.start_time = None
+            self.end_time = None
+            self.setWindowState(Qt.WindowState.WindowMaximized)
+            self.start_timer()
+            self.installEventFilter(self)
 
             self.setWindowIcon(QIcon(r"E:\RDFTeamWorkspace\icon\rdf_icon.ico"))
             
@@ -272,9 +282,10 @@ class CodeEditor(QMainWindow):
             self.wizard.project_created.connect(self.project_view.update_project_view)
             self.project_view.file_double_clicked.connect(self.open_file_from_project_view)
             self.project_view.path_changed.connect(self.update_file_view_path)
+            self.urlGenerated.connect(self.mobile_view.load_time_tracking_url)
 
             self.pc_view_active = False  # Add this line to track PC view state
-            
+            self.update_thread = None
             self.main_layout = QVBoxLayout()
             self.central_widget = QWidget()
             self.central_widget.setLayout(self.main_layout)
@@ -401,10 +412,14 @@ class CodeEditor(QMainWindow):
             self.project_Features_action =QAction("Update Features")
             self.project_Features_action.triggered.connect(self.Download_Features)
 
+            self.exe_update_action =QAction("Update Exe")
+            self.exe_update_action.triggered.connect(self.check_for_updates)
+
             update_menu.addAction(self.boilerplate_update_action)
             update_menu.addAction(self.ui_Update_action)
             update_menu.addAction(self.project_download_action)
             update_menu.addAction(self.project_Features_action)
+            update_menu.addAction(self.exe_update_action)
             
 
 
@@ -469,6 +484,143 @@ class CodeEditor(QMainWindow):
             print(f"Error initializing CodeEditor: {e}")
             logging.error(f"Error initializing CodeEditor: {e}")
 
+    def start_timer(self):
+        self.start_time = datetime.now()
+        print(f"[DEBUG] Timer started at {self.start_time}")  # Debug statement
+
+    def stop_timer(self):
+        if self.start_time:
+            self.end_time = datetime.now()
+            print(f"[DEBUG] Timer stopped at {self.end_time}")  # Debug statement
+            self.send_time_data(self.start_time, self.end_time)
+            self.start_time = None
+
+    def send_time_data(self, start_time, end_time):
+        encoded_email = urllib.parse.quote(self.email)
+        start_timestamp = int(start_time.timestamp())
+        end_timestamp = int(end_time.timestamp())
+
+        url = f"https://takeitideas.in/RDFSTUDIO/UserTimeTracking/timemanagement.php?email={encoded_email}&startTime={start_timestamp}&endTime={end_timestamp}"
+        print(f"[DEBUG] Sending data to URL: {url}")  # Debug statement
+
+        try:
+            response = requests.get(url)
+            print(f"[DEBUG] Server response: {response.text} (Status code: {response.status_code})")  # Debug statement
+            if response.status_code == 200:
+                print(f"[DEBUG] Time data sent successfully")
+                self.urlGenerated.emit(url)
+            else:
+                print(f"[DEBUG] Failed to send time data: {response.status_code}")
+        except requests.RequestException as e:
+            print(f"[DEBUG] Error sending time data: {e}")
+
+    def eventFilter(self, source, event):
+        if event.type() == QEvent.Type.WindowStateChange:
+            if self.windowState() & Qt.WindowState.WindowMinimized:
+                self.stop_timer()
+            elif self.windowState() & Qt.WindowState.WindowMaximized:
+                self.start_timer()
+        elif event.type() == QEvent.Type.Close:
+            self.stop_timer()
+
+        return super().eventFilter(source, event)
+
+    def check_for_updates(self):
+        self.update_thread = UpdateCheckThread()
+        self.update_thread.updateAvailable.connect(self.on_update_available)
+        self.update_thread.noUpdateAvailable.connect(self.on_no_update)
+        self.update_thread.errorOccurred.connect(self.on_update_error)
+        self.update_thread.finished.connect(self.cleanup_thread)  # Clean up after thread finishes
+        self.update_thread.start()
+
+    def cleanup_thread(self):
+        self.update_thread = None 
+        
+    def on_update_available(self, server_version):
+        self.download_update(server_version)
+
+    def on_no_update(self):
+        QMessageBox.information(self, "Update", "No update is available.")
+
+    def on_update_error(self, error_message):
+        QMessageBox.critical(self, "Update Error", f"Error checking updates: {error_message}")
+
+    def download_update(self, server_version):
+        download_url = 'http://takeitideas.in/RDFSTUDIO/RDF STUDIO.exe'
+        exe_dir = os.path.dirname(sys.executable)
+        temp_download_path = os.path.join(exe_dir, 'RDF STUDIO_temp.exe')
+
+        # Create and start the download thread
+        self.download_thread = DownloadThread(download_url, temp_download_path, self)
+        self.download_thread.progressUpdated.connect(self.on_download_progress)
+        self.download_thread.downloadFinished.connect(self.on_download_finished)
+        self.download_thread.errorOccurred.connect(self.on_download_error)
+
+        # Initialize the progress dialog in the main thread
+        self.progress_dialog = QProgressDialog("Downloading update...", "Cancel", 0, 100, self)
+        self.progress_dialog.setWindowTitle("Update")
+        self.progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        self.progress_dialog.canceled.connect(self.on_cancel_download)
+        self.progress_dialog.show()
+
+        self.download_thread.start()
+
+    def on_download_progress(self, value):
+        # Update the progress dialog value
+        self.progress_dialog.setValue(value)
+
+    def on_cancel_download(self):
+        if self.download_thread.isRunning():
+            self.download_thread.requestInterruption()
+
+    def on_download_finished(self, temp_download_path):
+        self.progress_dialog.close()
+        QMessageBox.information(self, "Download Complete", "The update has been downloaded successfully.")
+        self.replace_old_exe(temp_download_path)
+
+    def on_download_error(self, error_message):
+        self.progress_dialog.close()
+        QMessageBox.critical(self, "Error", f"Failed to download update: {error_message}")
+
+
+    def replace_old_exe(self, temp_exe_path):
+        exe_dir = os.path.dirname(sys.executable)
+        old_exe_name = self.get_executable_name(exe_dir)
+
+        if not old_exe_name:
+            QMessageBox.critical(self, "Error", "No matching executable found for replacement.")
+            return
+
+        old_exe_path = os.path.join(exe_dir, old_exe_name)
+        backup_exe_path = os.path.join(exe_dir, f"{old_exe_name}_backup.exe")
+
+        # Rename old executable to backup
+        try:
+            os.rename(old_exe_path, backup_exe_path)
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to rename old executable: {e}")
+            return
+
+        # Move the new executable to the original location
+        try:
+            shutil.move(temp_exe_path, old_exe_path)
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to move new executable: {e}")
+            # Restore old executable if replacement fails
+            if os.path.exists(backup_exe_path):
+                os.rename(backup_exe_path, old_exe_path)
+            return
+
+        # Notify the user
+        QMessageBox.information(self, "Update", "Update installed successfully. Please restart the application.")
+        
+
+    def get_executable_name(self, exe_dir):
+        for filename in os.listdir(exe_dir):
+            if filename.endswith(".exe") and "RDF" in filename:
+                return filename
+        return None
+
     def update_file_view_path(self, path):
         if hasattr(self, 'file_viewer'):
             self.file_viewer.set_path(path)
@@ -503,7 +655,7 @@ class CodeEditor(QMainWindow):
     
     def update_Ui(self):
         self.download_dialog = DownloadDailog(self)
-        self.download_thread = DownloadThread(dialog=self.download_dialog)
+        self.download_thread = DownloadUIThread(dialog=self.download_dialog)
         self.download_thread.update_message.connect(self.show_success_message)
         self.download_thread.progress_update.connect(self.download_dialog.update_progress)
         self.download_thread.error_message.connect(self.show_error_message)
@@ -1028,6 +1180,76 @@ class CodeEditor(QMainWindow):
         error_dialog.setInformativeText(message)
         error_dialog.setWindowTitle("Error")
         error_dialog.exec()
+
+class UpdateCheckThread(QThread):
+    updateAvailable = pyqtSignal(str)
+    noUpdateAvailable = pyqtSignal()
+    errorOccurred = pyqtSignal(str)
+
+    def run(self):
+        server_url = 'http://takeitideas.in/RDFSTUDIO/updates.txt'
+        exe_dir = os.path.dirname(sys.executable)
+        local_update_file = os.path.join(exe_dir, 'updates.txt')
+
+        try:
+            # Fetch the server version
+            server_response = requests.get(server_url)
+            server_response.raise_for_status()  # Ensure we got a valid response
+            server_version = server_response.text.strip()
+
+            # Read the local version
+            if os.path.exists(local_update_file):
+                with open(local_update_file, 'r') as file:
+                    local_version = file.read().strip()
+            else:
+                local_version = ""
+
+            # Check if the server version is different from the local version
+            if server_version != local_version:
+                self.updateAvailable.emit(server_version)
+            else:
+                self.noUpdateAvailable.emit()
+
+        except Exception as e:
+            self.errorOccurred.emit(str(e))
+
+class DownloadThread(QThread):
+    downloadFinished = pyqtSignal(str)
+    errorOccurred = pyqtSignal(str)
+    progressUpdated = pyqtSignal(int)  # Signal to emit progress
+
+    def __init__(self, download_url, temp_download_path, parent=None):
+        super().__init__(parent)
+        self.download_url = download_url
+        self.temp_download_path = temp_download_path
+
+    def run(self):
+        try:
+            response = requests.get(self.download_url, stream=True)
+            response.raise_for_status()
+            total_size = int(response.headers.get('content-length', 0))
+            block_size = 1024  # 1 KiB
+
+            downloaded_size = 0
+            with open(self.temp_download_path, 'wb') as file:
+                for data in response.iter_content(block_size):
+                    if self.isInterruptionRequested():
+                        raise Exception("Download canceled")
+
+                    file.write(data)
+                    downloaded_size += len(data)
+                    
+                    # Calculate the percentage and emit the progress signal
+                    if total_size > 0:  # Prevent division by zero
+                        progress_percentage = (downloaded_size / total_size) * 100
+                        self.progressUpdated.emit(int(progress_percentage))
+
+            self.downloadFinished.emit(self.temp_download_path)
+
+        except Exception as e:
+            self.errorOccurred.emit(str(e))
+
+
 
 
 

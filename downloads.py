@@ -36,7 +36,7 @@ class Download:
             # Show error message
             QMessageBox.critical(parent, "Error", f"An error occurred: {e}")
 
-class DownloadThread(QThread):
+class DownloadUIThread(QThread):
     update_message = pyqtSignal(str)
     progress_update = pyqtSignal(int, str)
     error_message = pyqtSignal(str)
