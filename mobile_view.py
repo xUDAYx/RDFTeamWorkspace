@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (
     QPushButton, QApplication, QMessageBox, QInputDialog, QTreeWidget, QDialog, QTreeWidgetItem, QLineEdit, QRadioButton, QButtonGroup, QAbstractItemView,QTreeView
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView  # type: ignore
-from PyQt6.QtCore import QUrl, Qt, QSize, QPoint, QThread, pyqtSignal,QRegularExpression,  QSortFilterProxyModel,QModelIndex,QSignalMapper
+from PyQt6.QtCore import QUrl, Qt, QSize, QPoint, QThread, pyqtSignal,QRegularExpression,  QSortFilterProxyModel,QModelIndex,QSignalMapper,QEvent
 from PyQt6.QtGui import QIcon,QGuiApplication,QPixmap, QImage,QStandardItemModel, QStandardItem
 from urllib.parse import quote
 from PyQt6.QtWebEngineCore import QWebEnginePage 
@@ -86,8 +86,48 @@ class MobileView(QWidget):
             self.bookmark_wizard.urlClicked.connect(self.load_bookmark_preview)
 
             self.TimeTrackView = QWebEngineView()
-            self.TimeTrackView.setFixedWidth(200)
-            self.TimeTrackView.setFixedHeight(20)
+
+
+            # Set the fixed size
+            self.TimeTrackView.setFixedWidth(180)
+            self.TimeTrackView.setFixedHeight(35)
+            self.TimeTrackView.setStyleSheet("border-radius:2px")
+
+            # Set initial zoom factor to 0.75
+            self.TimeTrackView.setZoomFactor(1)
+
+            # Inject CSS to hide scrollbars
+            hide_scrollbars_script = """
+            document.body.style.overflow = 'hidden';
+            """
+
+            # Inject JavaScript to disable zooming
+            disable_zoom_script = """
+            document.addEventListener('wheel', function(event) {
+                if (event.ctrlKey) {
+                    event.preventDefault();
+                }
+            }, { passive: false });
+
+            document.addEventListener('keydown', function(event) {
+                if (event.ctrlKey && (event.key === '+' || event.key === '-' || event.key === '=' || event.key === '0')) {
+                    event.preventDefault();
+                }
+            });
+            """
+
+            full_script = f"""
+            {hide_scrollbars_script}
+            {disable_zoom_script}
+            """
+
+            # Inject the script when the page loads
+            def inject_script():
+                self.TimeTrackView.page().runJavaScript(full_script)
+
+            self.TimeTrackView.loadFinished.connect(inject_script)
+
+            # Add the view to the layout
             self.layout.addWidget(self.TimeTrackView)
             
             # Create a container widget for the web view
@@ -147,31 +187,7 @@ class MobileView(QWidget):
 
             self.layout.addLayout(port_radio_layout)
 
-            icon_size = 25  # Define the icon size
-
-            self.back_button = QPushButton()
-            self.back_button.setIcon(QIcon(resource_path("images/back_button.png")))
-            self.back_button.setToolTip("Back")
-            self.back_button.setIconSize(QSize(icon_size, icon_size))
-            self.back_button.setFixedSize(icon_size + 10, icon_size + 10)
-            self.back_button.setStyleSheet("border: none;")
-            self.back_button.clicked.connect(self.web_view_back)
-
-            self.forward_button = QPushButton()
-            self.forward_button.setIcon(QIcon(resource_path("images/forward_button.png")))
-            self.forward_button.setIconSize(QSize(icon_size, icon_size))
-            self.forward_button.setFixedSize(icon_size + 10, icon_size + 10)
-            self.forward_button.setStyleSheet("border: none;")
-            self.forward_button.setToolTip("Forward")
-            self.forward_button.clicked.connect(self.web_view_forward)
-
-            self.reload_button = QPushButton()
-            self.reload_button.setIcon(QIcon(resource_path("images/reload.png")))
-            self.reload_button.setIconSize(QSize(icon_size, icon_size))
-            self.reload_button.setFixedSize(icon_size + 10, icon_size + 10)
-            self.reload_button.setStyleSheet("border: none;")
-            self.reload_button.setToolTip("Reload")
-            self.reload_button.clicked.connect(self.web_view_reload)
+          
 
             self.bookmark_button = QPushButton("Bookmarks")
             self.bookmark_button.setStyleSheet("""
@@ -195,7 +211,7 @@ class MobileView(QWidget):
                         color: white;
                     
                         border: none;
-                        border-radius: 5px;
+                        border-radius: 5px; 
                         padding: 5px;
                         margin-left: 2px;
                         margin-right: 2px;
@@ -235,35 +251,6 @@ class MobileView(QWidget):
                 """)
             self.app_store_button.clicked.connect(self.app_store)
 
-            self.navigation_layout.addWidget(self.back_button)
-            self.navigation_layout.addWidget(self.forward_button)
-            self.navigation_layout.addWidget(self.reload_button)
-            self.navigation_layout.addWidget(self.bookmark_button)
-            self.navigation_layout.addWidget(self.QR_button)
-            self.navigation_layout.addWidget(self.copy_url_button)
-            self.navigation_layout.addWidget(self.app_store_button)
-            self.navigation_layout.addStretch(1)  
-        
-            # Add stretchable space to align buttons to the left
-
-            self.layout.addLayout(self.navigation_layout)
-
-            # Add previewed URL display
-            self.url_layout = QHBoxLayout()
-            self.url_label = QLabel("Previewed URL:")
-            self.url_label.setStyleSheet("color: #333;")
-            self.url_display = QLineEdit()
-            self.url_display.setFixedHeight(25)
-            self.url_display.setReadOnly(True)
-            self.url_display.setStyleSheet("""
-                QLineEdit {
-                    background-color: #f5f5f5;
-                    border: 1px solid #ddd;
-                    border-radius: 4px;
-                    padding: 4px 5px;
-                    font-size: 14px;
-                }
-            """)
             self.open_in_browser_button = QPushButton("Open in browser")
             self.open_in_browser_button.setStyleSheet("""
                     QPushButton {
@@ -278,11 +265,40 @@ class MobileView(QWidget):
                 """)
             self.open_in_browser_button.clicked.connect(self.open_in_browser)
 
+        
+            self.navigation_layout.addWidget(self.bookmark_button)
+            self.navigation_layout.addWidget(self.QR_button)
+            self.navigation_layout.addWidget(self.copy_url_button)
+            self.navigation_layout.addWidget(self.open_in_browser_button)
+            self.navigation_layout.addWidget(self.app_store_button)
 
-            self.url_layout.addWidget(self.url_label)
-            self.url_layout.addWidget(self.url_display)
-            self.url_layout.addWidget(self.open_in_browser_button)
-            self.layout.addLayout(self.url_layout)
+            self.navigation_layout.addStretch(1)  
+        
+            # Add stretchable space to align buttons to the left
+
+            self.layout.addLayout(self.navigation_layout)
+
+            # Add previewed URL display
+        
+            self.url_label = QLabel("Previewed URL:")
+            self.url_label.setStyleSheet("color: #333;")
+            self.url_display = QLineEdit()
+            self.url_display.setFixedHeight(25)
+            self.url_display.setReadOnly(True)
+            self.url_display.setStyleSheet("""
+                QLineEdit {
+                    background-color: #f5f5f5;
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                    padding: 4px 5px;
+                    font-size: 14px;
+                }
+            """)
+            
+
+
+         
+           
 
             # Create the mobile header
             self.mobile_header = QWidget()

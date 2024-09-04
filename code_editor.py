@@ -84,6 +84,7 @@ class CustomCodeEditor(QsciScintilla):
             super().__init__()
             self.font_size = 12  # Default font size
             self.setup_editor()
+            self.SCI_CONTEXTMENU = QMenu(self)
         except Exception as e:
             print(f"Error initializing CustomCodeEditor: {e}")
             
@@ -374,6 +375,8 @@ class CodeEditor(QMainWindow):
 
             self.toolbar.addWidget(view_button)
 
+            
+
             # Create additional toolbar buttons and actions
             self.restart_application_button = QAction("Restart", self)
             self.restart_application_button.triggered.connect(self.restart_application)
@@ -431,6 +434,39 @@ class CodeEditor(QMainWindow):
             self.toolbar.addWidget(update_button)
     
             # Add actions directly to the toolbar
+            AI_menu = QMenu("AI menu",self)
+
+            self.code_format_action = QAction("Code Format",self)
+            self.Add_Comment_Action = QAction("Add Comments")
+            self.Add_Code_Quality_Action = QAction("Add code Quality",self)
+            self.Imrove_Variable_Names_Action = QAction("Improve Variable and function names",self)
+            self.Improve_Code_Quality = QAction("Improve Code Quality",self)
+            self.Create_Algorithm_Action = QAction("Create Algorithm",self)
+            self.Create_Flowchart_Action = QAction("Create Flowchart",self)
+            self.Generate_Code_For_Algortihm_Action = QAction("Generate code from Algorithm",self)
+            self.suggest_an_improved_Algorithm_Action = QAction("Suggest an improved algorithm",self)
+            self.Suggest_Improved_code_Action  = QAction("Suggest Improved code",self)
+
+            AI_menu.addAction(self.code_format_action)
+            AI_menu.addAction(self.Add_Comment_Action)
+            AI_menu.addAction(self.Add_Code_Quality_Action)
+            AI_menu.addAction(self.Imrove_Variable_Names_Action)
+            AI_menu.addAction(self.Improve_Code_Quality)
+            AI_menu.addAction(self.Create_Algorithm_Action)
+            AI_menu.addAction(self.Create_Flowchart_Action)
+            AI_menu.addAction(self.Generate_Code_For_Algortihm_Action)
+            AI_menu.addAction(self.suggest_an_improved_Algorithm_Action)
+            AI_menu.addAction(self.Suggest_Improved_code_Action)
+
+
+
+            AI_Power_Button = QToolButton(self)
+            AI_Power_Button.setText("AI Power") 
+            AI_Power_Button.setMenu(AI_menu)
+            AI_Power_Button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+            AI_Power_Button.setStyleSheet("QToolButton::menu-indicator { image: none; }")
+
+            self.toolbar.addWidget(AI_Power_Button)
 
             self.toolbar.addAction(self.restart_application_button)            
             
