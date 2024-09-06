@@ -875,14 +875,20 @@ class ProjectView(QWidget):
             return
 
         # Determine the base path depending on the execution environment
-        base_path = getattr(sys, '_MEIPASS', os.path.abspath("."))
+        if getattr(sys, 'frozen', False):  # If the application is run as a bundled exe
+            base_path = os.path.dirname(sys.executable)
+        else:
+            base_path = os.path.abspath(".")
 
-        # Define the directory path where projects are located
+        # Define the directory path where RDF_Features are located
+        feature_directory = os.path.join(base_path, "RDF_Features")
+
+        # Define the folder path for the selected feature
         merge_folder_name = selected_item.text()
-        merge_folder_path = os.path.join(base_path, "c:/xampp/htdocs/RDFProjects_ROOT", merge_folder_name)
+        merge_folder_path = os.path.join(feature_directory, merge_folder_name)
 
         try:
-            # Assuming `self.folder_path` is the path to the currently open project
+            # The path to the currently open project
             current_project_path = self.folder_path
 
             # Read project information
@@ -928,7 +934,8 @@ class ProjectView(QWidget):
 
         except Exception as e:
             print(f"Error merging project: {e}")
-            QMessageBox.critical(self, "Merge Failed", f"Failed to merge '{merge_folder_name} {e}'.")
+            QMessageBox.critical(self, "Merge Failed", f"Failed to merge '{merge_folder_name}': {e}.")
+
 
         
     def update_project_view(self, project_dir):
