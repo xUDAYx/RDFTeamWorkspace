@@ -928,7 +928,7 @@ class ProjectView(QWidget):
 
         except Exception as e:
             print(f"Error merging project: {e}")
-            QMessageBox.critical(self, "Merge Failed", f"Failed to merge '{merge_folder_name}'.")
+            QMessageBox.critical(self, "Merge Failed", f"Failed to merge '{merge_folder_name} {e}'.")
 
         
     def update_project_view(self, project_dir):

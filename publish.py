@@ -1,6 +1,7 @@
 # publish.py
 import os
 import json
+import filecmp
 import shutil,traceback
 from ftplib import FTP, error_perm
 from PyQt6.QtCore import QThread, pyqtSignal,QDir,Qt
@@ -279,20 +280,23 @@ class ProjectInfoPage(QWizardPage):
                 json.dump(project_info, f, indent=4)
                 f.truncate()
 
-            # Replace the banner image if it exists
+            # Replace the banner image if a new one is selected and it's different
             banner_dest_path = os.path.join(upload_dir, "banner.png")
             if banner_image_path:
                 if os.path.isfile(banner_image_path):
-                    try:
-                        shutil.copy(banner_image_path, banner_dest_path)
-                    except FileNotFoundError:
-                        QMessageBox.critical(self, "Error", f"Banner image file not found: {banner_image_path}")
-                    except Exception as e:
-                        QMessageBox.critical(self, "Error", f"Failed to copy banner image: {e}")
+                    if not os.path.exists(banner_dest_path) or not filecmp.cmp(banner_image_path, banner_dest_path, shallow=False):
+                        try:
+                            shutil.copy(banner_image_path, banner_dest_path)
+                        except FileNotFoundError:
+                            QMessageBox.critical(self, "Error", f"Banner image file not found: {banner_image_path}")
+                        except Exception as e:
+                            QMessageBox.critical(self, "Error", f"Failed to copy banner image: {e}")
+                    else:
+                        print("Selected banner image is identical to the existing one. No replacement necessary.")
                 else:
                     QMessageBox.warning(self, 'Warning', 'Banner image file does not exist.')
             else:
-                QMessageBox.warning(self, 'Warning', 'No banner image selected. Skipping image upload.')
+                QMessageBox.information(self, 'Info', 'No new banner image selected. Proceeding with the existing image.')
 
             # FTP upload logic
             server = 'ftp.takeitideas.in'
@@ -306,6 +310,7 @@ class ProjectInfoPage(QWizardPage):
 
         else:
             QMessageBox.warning(self, 'Error', 'No valid directory for upload.')
+
 
     def on_upload_finished(self, success):
         if success:
