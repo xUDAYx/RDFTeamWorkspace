@@ -378,8 +378,7 @@ class CodeEditor(QMainWindow):
             
 
             # Create additional toolbar buttons and actions
-            self.restart_application_button = QAction("Restart", self)
-            self.restart_application_button.triggered.connect(self.restart_application)
+        
 
             validation_menu = QMenu("Validation", self) 
             try:
@@ -468,7 +467,7 @@ class CodeEditor(QMainWindow):
 
             self.toolbar.addWidget(AI_Power_Button)
 
-            self.toolbar.addAction(self.restart_application_button)            
+              
             
 
             # Add the toolbar to the main layout
