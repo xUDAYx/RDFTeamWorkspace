@@ -103,7 +103,12 @@ class CustomCodeEditor(QsciScintilla):
         menu.exec_(self.mapToGlobal(pos))
     def contextMenuEvent(self, event):
         base_dir = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(os.path.abspath(__file__))
-        boilerplate_dir = os.path.join(base_dir, 'boilerplate')
+        boilerplate_dir = os.path.join(base_dir, 'Boilerplates')
+
+        # Check if the Boilerplates directory exists
+        if not os.path.exists(boilerplate_dir):
+            QMessageBox.warning(self, "Boilerplates Not Found", "The Boilerplates folder was not found. Please update Boilerplates from the toolbar.")
+            return
 
         menu = QMenu(self)
         insert_boilerplate_menu = QMenu("Insert Boilerplate", self)
@@ -144,10 +149,11 @@ class CustomCodeEditor(QsciScintilla):
                     error_folders.append(category)
 
         if error_folders:
-            error_message = f"Error in Boiler plate file(s). The following folder(s) have issues: {', '.join(error_folders)}. Contact Server Admin."
+            error_message = f"Error in Boilerplate file(s). The following folder(s) have issues: {', '.join(error_folders)}. Contact Server Admin."
             QMessageBox.critical(self, "Error", error_message)
 
         menu.exec(event.globalPos())
+
     def insert_boilerplate(self, boilerplate_code):
         # Get the current cursor position
         line, index = self.getCursorPosition()

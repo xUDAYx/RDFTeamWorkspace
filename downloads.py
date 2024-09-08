@@ -4,37 +4,79 @@ import sys
 from PyQt6.QtCore import QThread, pyqtSignal
 from PyQt6.QtWidgets import QMessageBox, QDialog, QApplication, QVBoxLayout, QProgressBar, QLabel
 
+import os
+import sys
+import requests
+import zipfile
+import shutil
+from PyQt6.QtWidgets import QMessageBox
+
 class Download:
     def update_boilerplate(self, parent=None):
-        url = 'http://takeitideas.in/Downloads/Boilerplates/boilerplate.json'
+        url = 'http://takeitideas.in/Downloads/Boilerplates.zip'
         
         # Determine the path of the base folder (where the script or executable is located)
         base_folder = os.path.dirname(os.path.abspath(sys.argv[0]))
         print(base_folder)
-        local_file_path = os.path.join(base_folder, 'boilerplate.json')
+        
+        # Paths for the downloaded zip file and the extraction folder
+        local_zip_path = os.path.join(base_folder, 'Boilerplates.zip')
+        extract_to_folder = os.path.join(base_folder, 'Boilerplates')
 
-        is_update = os.path.exists(local_file_path)
+        is_update = os.path.exists(extract_to_folder)
+
+        # Remove the existing Boilerplates folder if it exists
+        if os.path.exists(extract_to_folder):
+            shutil.rmtree(extract_to_folder)
 
         try:
-            # Download the file
+            # Download the zip file
             response = requests.get(url, stream=True)
 
             # Check if the request was successful
             if response.status_code == 200:
-                with open(local_file_path, 'wb') as file:
+                with open(local_zip_path, 'wb') as file:
                     for chunk in response.iter_content(chunk_size=1024):
                         if chunk:
                             file.write(chunk)
+                
+                # Extract the contents of the zip file
+                with zipfile.ZipFile(local_zip_path, 'r') as zip_ref:
+                    # Get the list of members
+                    members = zip_ref.namelist()
+                    
+                    # Find the common prefix (likely 'Boilerplates/' in this case)
+                    root_folder = os.path.commonprefix(members).rstrip('/')
+                    
+                    # Extract each member while removing the root folder part
+                    for member in members:
+                        # Get the correct relative path by removing the root folder part
+                        target_path = os.path.join(extract_to_folder, os.path.relpath(member, root_folder))
+                        
+                        # Create directories if needed
+                        target_dir = os.path.dirname(target_path)
+                        if not os.path.exists(target_dir):
+                            os.makedirs(target_dir)
+                        
+                        # Extract the file or directory
+                        if not member.endswith('/'):  # Avoid directories themselves
+                            with zip_ref.open(member) as source, open(target_path, 'wb') as target:
+                                shutil.copyfileobj(source, target)
+
+                # Remove the downloaded zip file after extraction
+                os.remove(local_zip_path)
 
                 if is_update:
-                    QMessageBox.information(parent, "Success", "Boilerplate updated successfully!")
+                    QMessageBox.information(parent,"success","Boilerplates updated successfully")
                 else:
-                    QMessageBox.information(parent, "Success", "Boilerplate downloaded successfully!")
+                    QMessageBox.information(parent, "Success", "Boilerplates downloaded successfully!")
+
             else:
                 QMessageBox.critical(parent, "Error", f"Failed to download the file. Status code: {response.status_code}")
         except Exception as e:
             # Show error message
             QMessageBox.critical(parent, "Error", f"An error occurred: {e}")
+
 
 class DownloadUIThread(QThread):
     update_message = pyqtSignal(str)
