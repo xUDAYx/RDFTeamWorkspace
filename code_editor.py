@@ -102,34 +102,52 @@ class CustomCodeEditor(QsciScintilla):
         # Show the context menu
         menu.exec_(self.mapToGlobal(pos))
     def contextMenuEvent(self, event):
-          base_dir = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(os.path.abspath(__file__))
-          boilerplate_dir = os.path.join(base_dir, 'boilerplate')
+        base_dir = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(os.path.abspath(__file__))
+        boilerplate_dir = os.path.join(base_dir, 'boilerplate')
 
-          menu = QMenu(self)
-          insert_boilerplate_menu = QMenu("Insert Boilerplate", self)
-          menu.addMenu(insert_boilerplate_menu)
+        menu = QMenu(self)
+        insert_boilerplate_menu = QMenu("Insert Boilerplate", self)
+        menu.addMenu(insert_boilerplate_menu)
 
-          categories = {
-              "Easy HTML Tags": os.path.join(boilerplate_dir, "easy_html_tags"),
-              "Complex HTML Tags": os.path.join(boilerplate_dir, "complex_html_tags"),
-              "Ready Made": os.path.join(boilerplate_dir, "ready_made")
-          }
+        categories = {
+            "Easy HTML Tags": os.path.join(boilerplate_dir, "easy_html_tags"),
+            "Complex HTML Tags": os.path.join(boilerplate_dir, "complex_html_tags"),
+            "Ready Made": os.path.join(boilerplate_dir, "ready_made")
+        }
 
-          for category, folder_path in categories.items():
-              category_menu = QMenu(category, insert_boilerplate_menu)
-              insert_boilerplate_menu.addMenu(category_menu)
+        error_folders = []
 
-              for json_file in os.listdir(folder_path):
-                  if json_file.endswith('.json'):
-                      with open(os.path.join(folder_path, json_file), 'r') as f:
-                          boilerplate_data = json.load(f)
-                
-                      for boilerplate_name, boilerplate_code in boilerplate_data.items():
-                          boilerplate_action = QAction(boilerplate_name, self)
-                          boilerplate_action.triggered.connect(lambda checked, code=boilerplate_code: self.insert_boilerplate(code))
-                          category_menu.addAction(boilerplate_action)
+        for category, folder_path in categories.items():
+            category_menu = QMenu(category, insert_boilerplate_menu)
+            insert_boilerplate_menu.addMenu(category_menu)
 
-          menu.exec(event.globalPos())
+            if not os.path.exists(folder_path):
+                error_folders.append(category)
+                continue
+
+            json_files = [f for f in os.listdir(folder_path) if f.endswith('.json')]
+            
+            if not json_files:
+                error_folders.append(category)
+                continue
+
+            for json_file in json_files:
+                try:
+                    with open(os.path.join(folder_path, json_file), 'r') as f:
+                        boilerplate_data = json.load(f)
+                    
+                    for boilerplate_name, boilerplate_code in boilerplate_data.items():
+                        boilerplate_action = QAction(boilerplate_name, self)
+                        boilerplate_action.triggered.connect(lambda checked, code=boilerplate_code: self.insert_boilerplate(code))
+                        category_menu.addAction(boilerplate_action)
+                except json.JSONDecodeError:
+                    error_folders.append(category)
+
+        if error_folders:
+            error_message = f"Error in Boiler plate file(s). The following folder(s) have issues: {', '.join(error_folders)}. Contact Server Admin."
+            QMessageBox.critical(self, "Error", error_message)
+
+        menu.exec(event.globalPos())
     def insert_boilerplate(self, boilerplate_code):
         # Get the current cursor position
         line, index = self.getCursorPosition()
