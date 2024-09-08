@@ -581,15 +581,27 @@ class CodeEditor(QMainWindow):
         QMessageBox.critical(self, "Update Error", f"Error checking updates: {error_message}")
 
     def download_update(self, server_version):
-        download_url = 'http://takeitideas.in/RDFSTUDIO/RDF STUDIO.exe'
-        exe_dir = os.path.dirname(sys.executable)
-        temp_download_path = os.path.join(exe_dir, 'RDF STUDIO_temp.exe')
+        updates_txt_url = 'https://takeitideas.in/RDFSTUDIO/updates.txt'
+        exe_download_url = 'http://takeitideas.in/RDFSTUDIO/RDF STUDIO.exe'
 
-        # Create and start the download thread
-        self.download_thread = DownloadThread(download_url, temp_download_path, self)
-        self.download_thread.progressUpdated.connect(self.on_download_progress)
-        self.download_thread.downloadFinished.connect(self.on_download_finished)
-        self.download_thread.errorOccurred.connect(self.on_download_error)
+        exe_dir = os.path.dirname(sys.executable)
+        temp_txt_download_path = os.path.join(exe_dir, 'updates_temp.txt')
+        temp_exe_download_path = os.path.join(exe_dir, 'RDF STUDIO_temp.exe')
+
+        # Function to handle the download of the exe file after the txt file is downloaded
+        def on_txt_download_finished():
+            # Now start downloading the RDF STUDIO.exe file
+            self.download_thread = DownloadThread(exe_download_url, temp_exe_download_path, self)
+            self.download_thread.progressUpdated.connect(self.on_download_progress)
+            self.download_thread.downloadFinished.connect(self.on_download_finished)
+            self.download_thread.errorOccurred.connect(self.on_download_error)
+            self.download_thread.start()
+
+        # Create and start the thread to download the updates.txt file
+        self.update_thread = DownloadThread(updates_txt_url, temp_txt_download_path, self)
+        self.update_thread.progressUpdated.connect(self.on_download_progress)
+        self.update_thread.downloadFinished.connect(on_txt_download_finished)
+        self.update_thread.errorOccurred.connect(self.on_download_error)
 
         # Initialize the progress dialog in the main thread
         self.progress_dialog = QProgressDialog("Downloading update...", "Cancel", 0, 100, self)
@@ -598,7 +610,8 @@ class CodeEditor(QMainWindow):
         self.progress_dialog.canceled.connect(self.on_cancel_download)
         self.progress_dialog.show()
 
-        self.download_thread.start()
+        # Start by downloading the updates.txt file
+        self.update_thread.start()
 
     def on_download_progress(self, value):
         # Update the progress dialog value
