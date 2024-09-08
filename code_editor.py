@@ -577,7 +577,9 @@ class CodeEditor(QMainWindow):
         exe_download_url = 'http://takeitideas.in/RDFSTUDIO/RDF STUDIO.exe'
 
         exe_dir = os.path.dirname(sys.executable)
-        temp_txt_download_path = os.path.join(exe_dir, 'updates_temp.txt')
+        
+        # Paths for the final files
+        updates_txt_path = os.path.join(exe_dir, 'updates.txt')
         temp_exe_download_path = os.path.join(exe_dir, 'RDF STUDIO_temp.exe')
 
         # Function to handle the download of the exe file after the txt file is downloaded
@@ -590,7 +592,7 @@ class CodeEditor(QMainWindow):
             self.download_thread.start()
 
         # Create and start the thread to download the updates.txt file
-        self.update_thread = DownloadThread(updates_txt_url, temp_txt_download_path, self)
+        self.update_thread = DownloadThread(updates_txt_url, updates_txt_path, self)
         self.update_thread.progressUpdated.connect(self.on_download_progress)
         self.update_thread.downloadFinished.connect(on_txt_download_finished)
         self.update_thread.errorOccurred.connect(self.on_download_error)
@@ -604,6 +606,7 @@ class CodeEditor(QMainWindow):
 
         # Start by downloading the updates.txt file
         self.update_thread.start()
+
 
 
     def on_download_progress(self, value):
