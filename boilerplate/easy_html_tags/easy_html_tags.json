@@ -1,0 +1,6 @@
+{
+  "Style Boilerplate": "<style>\n  body {\n    font-family: Arial, sans-serif;\n    margin: 0;\n    padding: 20px;\n  }\n  h1 {\n    color: #333;\n  }\n</style>",
+  "Script Boilerplate": "<script>\n  function greet() {\n    alert('Hello, World!');\n  }\n</script>",
+  "Link Boilerplate": "<link rel=\"stylesheet\" href=\"styles.css\">",
+  "Image Boilerplate": "<img src=\"image.jpg\" alt=\"Description of the image\" width=\"300\" height=\"200\">"
+}

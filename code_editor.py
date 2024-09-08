@@ -101,61 +101,35 @@ class CustomCodeEditor(QsciScintilla):
         
         # Show the context menu
         menu.exec_(self.mapToGlobal(pos))
-
     def contextMenuEvent(self, event):
-        # Determine the directory of the EXE or script
-        if getattr(sys, 'frozen', False):
-            # If the application is running as an EXE
-            base_dir = os.path.dirname(sys.executable)
-        else:
-            # If the application is running as a script
-            base_dir = os.path.dirname(os.path.abspath(__file__))
-        
-        # Path to the boilerplate.json
-        json_path = os.path.join(base_dir, 'boilerplate.json')
+          base_dir = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(os.path.abspath(__file__))
+          boilerplate_dir = os.path.join(base_dir, 'boilerplate')
 
-        if not os.path.exists(json_path):
-            # Show a message box if the boilerplate.json file does not exist
-            QMessageBox.warning(self, "File Not Found", "Boiler Plates do not exist. Please update.")
-            return
-        
-        # Create the context menu
-        menu = QMenu(self)
-        
-        # Add the "Insert Boilerplate" submenu
-        insert_boilerplate_menu = QMenu("Insert Boilerplate", self)
-        menu.addMenu(insert_boilerplate_menu)
-        
-        # Add the category submenus
-        easy_html_tags_menu = QMenu("Easy HTML Tags", insert_boilerplate_menu)
-        complex_html_tags_menu = QMenu("Complex HTML Tags", insert_boilerplate_menu)
-        ready_made_menu = QMenu("Ready Made", insert_boilerplate_menu)
-        insert_boilerplate_menu.addMenu(easy_html_tags_menu)
-        insert_boilerplate_menu.addMenu(complex_html_tags_menu)
-        insert_boilerplate_menu.addMenu(ready_made_menu)
-        
-        # Load the boilerplate options from the JSON file
-        with open(json_path, 'r') as f:
-            boilerplate_data = json.load(f)
-        
-        # Add each boilerplate option to the appropriate submenu
-        for boilerplate_name, boilerplate_code in boilerplate_data.items():
-            if boilerplate_name.startswith("Easy HTML Tags:"):
-                boilerplate_action = QAction(boilerplate_name.split(":")[1], self)
-                boilerplate_action.triggered.connect(lambda checked, code=boilerplate_code: self.insert_boilerplate(code))
-                easy_html_tags_menu.addAction(boilerplate_action)
-            elif boilerplate_name.startswith("Complex HTML Tags:"):
-                boilerplate_action = QAction(boilerplate_name.split(":")[1], self)
-                boilerplate_action.triggered.connect(lambda checked, code=boilerplate_code: self.insert_boilerplate(code))
-                complex_html_tags_menu.addAction(boilerplate_action)
-            elif boilerplate_name.startswith("Ready Made:"):
-                boilerplate_action = QAction(boilerplate_name.split(":")[1], self)
-                boilerplate_action.triggered.connect(lambda checked, code=boilerplate_code: self.insert_boilerplate(code))
-                ready_made_menu.addAction(boilerplate_action)
-        
-        # Show the context menu
-        menu.exec(event.globalPos())
+          menu = QMenu(self)
+          insert_boilerplate_menu = QMenu("Insert Boilerplate", self)
+          menu.addMenu(insert_boilerplate_menu)
 
+          categories = {
+              "Easy HTML Tags": os.path.join(boilerplate_dir, "easy_html_tags"),
+              "Complex HTML Tags": os.path.join(boilerplate_dir, "complex_html_tags"),
+              "Ready Made": os.path.join(boilerplate_dir, "ready_made")
+          }
+
+          for category, folder_path in categories.items():
+              category_menu = QMenu(category, insert_boilerplate_menu)
+              insert_boilerplate_menu.addMenu(category_menu)
+
+              for json_file in os.listdir(folder_path):
+                  if json_file.endswith('.json'):
+                      with open(os.path.join(folder_path, json_file), 'r') as f:
+                          boilerplate_data = json.load(f)
+                
+                      for boilerplate_name, boilerplate_code in boilerplate_data.items():
+                          boilerplate_action = QAction(boilerplate_name, self)
+                          boilerplate_action.triggered.connect(lambda checked, code=boilerplate_code: self.insert_boilerplate(code))
+                          category_menu.addAction(boilerplate_action)
+
+          menu.exec(event.globalPos())
     def insert_boilerplate(self, boilerplate_code):
         # Get the current cursor position
         line, index = self.getCursorPosition()
