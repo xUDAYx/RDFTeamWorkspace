@@ -31,6 +31,7 @@ from code_formatter import CodeFormatter
 from OpenProject import OpenProjectWizard
 from ref_view import ReferenceView
 from publish import PublishWizard
+from AI import CodeFormatter
 from file_view import FileView
 from downloads import Download,DownloadUIThread,DownloadDailog,DownloadProjectsThread,DownloadFeaturesThread
 
@@ -283,6 +284,9 @@ class CodeEditor(QMainWindow):
             self.project_view.path_changed.connect(self.update_file_view_path)
             self.urlGenerated.connect(self.mobile_view.load_time_tracking_url)
 
+            api_key = "AIzaSyC9yY9s7dH-TAvszp-skbdUlegWe9h3Z2E"
+            self.code_formatter = CodeFormatter(api_key)
+
             self.pc_view_active = False  # Add this line to track PC view state
             self.update_thread = None
             self.main_layout = QVBoxLayout()
@@ -434,6 +438,7 @@ class CodeEditor(QMainWindow):
             AI_menu = QMenu("AI menu",self)
 
             self.code_format_action = QAction("Code Format",self)
+            self.code_format_action.triggered.connect(self.on_format_code_clicked)
             self.Add_Comment_Action = QAction("Add Comments")
             self.Add_Code_Quality_Action = QAction("Add code Quality",self)
             self.Imrove_Variable_Names_Action = QAction("Improve Variable and function names",self)
@@ -1077,12 +1082,28 @@ class CodeEditor(QMainWindow):
 
         except Exception as e:
             print(f"Failed to open new tab: {e}")
+    
+    def on_format_code_clicked(self):
+        current_widget = self.tab_widget.currentWidget()
+        if current_widget is not None and hasattr(current_widget, 'file_path'):
+            editor = current_widget.findChild(CustomCodeEditor)
+            if editor:
+                file_path = current_widget.file_path
+                self.format_current_code(editor, file_path)
+
 
     def format_current_code(self, editor, file_path):
         try:
             input_code = editor.text()
-            formatted_code = CodeFormatter.format_code(file_path, input_code)
+            language = self.get_language_from_extension(file_path)
+            
+            if language == "Unknown":
+                QMessageBox.warning(self, "Warning", f"Could not determine the language for {file_path}")
+                return
+
+            formatted_code = self.code_formatter.format_code(input_code)
             editor.setText(formatted_code)
+
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to format code: {e}")
 

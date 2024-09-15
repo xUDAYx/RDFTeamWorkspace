@@ -1,33 +1,23 @@
+import google.generativeai as genai
+import re
 
-import sys
-from PyQt6.QtWidgets import QApplication, QVBoxLayout, QWidget
-from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtCore import QUrl
-class MainWindow(QWidget):
-    def __init__(self):
-        super().__init__()
+class CodeFormatter:
+    def __init__(self, api_key: str):
+        genai.configure(api_key=api_key)
+        self.model = genai.GenerativeModel("gemini-1.5-flash")
 
-        self.initUI()
+    def format_code(self, code: str) :
+        prompt = f"Format the following  code and return only the formatted code and at the top of the line add comment that 'RDF Studio AI has formatted your code Successfully' and dont add comment '''php '''.:\n\n{code}"
+        response = self.model.generate_content(prompt)
+        
+        # Attempt to remove any extra text that might have been added by the model
+        formatted_code = response.text
 
-    def initUI(self):
-        # Create a QWebEngineView widget
-        self.web_view = QWebEngineView(self)
+        formatted_code = re.sub(r"```[\w]*\n", '', formatted_code)
+        formatted_code = re.sub(r"\n```", '', formatted_code)
 
-        # Load the URL
-        url = r"https://takeitideas.in/RDFSTUDIO/UserTimeTracking/timemanagement.php?email=pratapshukla007%40gmailcom&startTime=1234&endTime=2345"
-        self.web_view.setUrl(QUrl(url))
 
-        # Layout setup
-        layout = QVBoxLayout()
-        layout.addWidget(self.web_view)
-        self.setLayout(layout)
+        # If necessary, you can apply additional rules to further refine the output
+        # For example, you might check for code-specific patterns, comments, or remove unwanted lines
 
-        # Window settings
-        self.setWindowTitle('Display URL in QWebEngineView')
-        self.show()
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = MainWindow()
-    sys.exit(app.exec())
-
+        return formatted_code
