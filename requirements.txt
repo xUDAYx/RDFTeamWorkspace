@@ -1,1 +1,1 @@
-pip install PyQt6 PyQt6-WebEngine PyQt6-QScintilla config chardet psutil qrcode[PIL] jsbeautifier bs4 requests google-genreativeai
+pip install PyQt6 PyQt6-WebEngine PyQt6-QScintilla config chardet psutil qrcode[PIL] jsbeautifier bs4 requests google-generativeai
