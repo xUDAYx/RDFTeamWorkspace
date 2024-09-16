@@ -124,6 +124,8 @@ class LoginDialog(QDialog):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+
+    start_xampp()
     
     # Show login dialog first
     login_dialog = LoginDialog()
