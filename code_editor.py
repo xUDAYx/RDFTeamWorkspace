@@ -7,6 +7,9 @@ from ftplib import FTP,error_perm
 from datetime import datetime, timedelta
 from urllib.parse import urlsplit
 import urllib.parse
+import graphviz
+from io import BytesIO
+from PIL import Image
 
 import time
 import shutil
@@ -14,7 +17,7 @@ from pc_view import PCView
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 from PyQt6.QtGui import QSyntaxHighlighter,QIcon
 from PyQt6.Qsci import QsciDocument
-from PyQt6.QtWidgets import QWizard, QDialog,QPlainTextEdit,QProgressDialog, QProgressBar,QInputDialog,QLabel, QMainWindow,QLineEdit,QMenu, QVBoxLayout, QWidget, QSplitter, QDialogButtonBox, QTreeView, QToolBar, QFileDialog, QToolButton, QTabWidget, QApplication, QMessageBox, QPushButton, QTextEdit, QScrollBar, QHBoxLayout, QSizePolicy
+from PyQt6.QtWidgets import QWizard,QWizardPage,QScrollArea, QDialog,QPlainTextEdit,QProgressDialog, QProgressBar,QInputDialog,QLabel, QMainWindow,QLineEdit,QMenu, QVBoxLayout, QWidget, QSplitter, QDialogButtonBox, QTreeView, QToolBar, QFileDialog, QToolButton, QTabWidget, QApplication, QMessageBox, QPushButton, QTextEdit, QScrollBar, QHBoxLayout, QSizePolicy
 from PyQt6.QtGui import  QTextCharFormat,QAction, QPixmap, QFileSystemModel, QIcon, QFont, QPainter, QColor, QTextFormat, QTextCursor, QKeySequence, QShortcut
 from PyQt6.QtCore import Qt,QEvent, QModelIndex, QSettings,QTimer, QDir,QThread, pyqtSlot, QSize, QRect, QProcess, QPoint, pyqtSignal,QCoreApplication
 from PyQt6.Qsci import QsciScintilla, QsciLexerPython, QsciLexerHTML, QsciLexerJavaScript, QsciLexerCSS
@@ -443,22 +446,24 @@ class CodeEditor(QMainWindow):
             self.Add_Code_Quality_Action = QAction("Add code Quality",self)
             self.Imrove_Variable_Names_Action = QAction("Improve Variable and function names",self)
             self.Improve_Code_Quality = QAction("Improve Code Quality",self)
-            self.Create_Algorithm_Action = QAction("Create Algorithm",self)
-            self.Create_Flowchart_Action = QAction("Create Flowchart",self)
-            self.Generate_Code_For_Algortihm_Action = QAction("Generate code from Algorithm",self)
-            self.suggest_an_improved_Algorithm_Action = QAction("Suggest an improved algorithm",self)
-            self.Suggest_Improved_code_Action  = QAction("Suggest Improved code",self)
+             # Add the actions for flowchart, pseudocode, algorithm
+            self.flowchart_action = QAction("Generate Flowchart", self)
+            self.flowchart_action.triggered.connect(self.on_generate_flowchart_clicked)
+
+            self.pseudocode_action = QAction("Generate Pseudocode", self)
+            self.pseudocode_action.triggered.connect(self.on_generate_pseudocode_clicked)
+
+            self.algorithm_action = QAction("Generate Algorithm", self)
+            self.algorithm_action.triggered.connect(self.on_generate_algorithm_clicked)
 
             AI_menu.addAction(self.code_format_action)
             AI_menu.addAction(self.Add_Comment_Action)
             AI_menu.addAction(self.Add_Code_Quality_Action)
             AI_menu.addAction(self.Imrove_Variable_Names_Action)
             AI_menu.addAction(self.Improve_Code_Quality)
-            AI_menu.addAction(self.Create_Algorithm_Action)
-            AI_menu.addAction(self.Create_Flowchart_Action)
-            AI_menu.addAction(self.Generate_Code_For_Algortihm_Action)
-            AI_menu.addAction(self.suggest_an_improved_Algorithm_Action)
-            AI_menu.addAction(self.Suggest_Improved_code_Action)
+            AI_menu.addAction(self.flowchart_action)
+            AI_menu.addAction(self.pseudocode_action)
+            AI_menu.addAction(self.algorithm_action)
 
 
 
@@ -1082,7 +1087,145 @@ class CodeEditor(QMainWindow):
 
         except Exception as e:
             print(f"Failed to open new tab: {e}")
+
+    def on_generate_flowchart_clicked(self):
+        current_widget = self.tab_widget.currentWidget()
+        if current_widget is not None and hasattr(current_widget, 'file_path'):
+            editor = current_widget.findChild(CustomCodeEditor)
+            if editor:
+                code = editor.text()  # Get the code from the editor
+                self.generate_flowchart(code)
+
+    def on_generate_pseudocode_clicked(self):
+        current_widget = self.tab_widget.currentWidget()
+        if current_widget is not None and hasattr(current_widget, 'file_path'):
+            editor = current_widget.findChild(CustomCodeEditor)
+            if editor:
+                code = editor.text()  # Get the code from the editor
+                self.generate_pseudocode(code)
+
+    def on_generate_algorithm_clicked(self):
+        current_widget = self.tab_widget.currentWidget()
+        if current_widget is not None and hasattr(current_widget, 'file_path'):
+            editor = current_widget.findChild(CustomCodeEditor)
+            if editor:
+                code = editor.text()  # Get the code from the editor
+                self.generate_algorithm(code)
+
+
+    def generate_flowchart(self, code):
+        flowchart_dot = self.code_to_flowchart_dot(code)
+        if flowchart_dot:
+            self.display_flowchart(flowchart_dot)
+
+    def code_to_flowchart_dot(self, code):
+        # Simple DOT format flowchart generation
+        lines = code.splitlines()
+        dot = graphviz.Digraph()
+        dot.node('Start', 'Start')
+        previous_node = 'Start'
+        
+        for i, line in enumerate(lines):
+            current_node = f'node{i}'
+            if "if" in line:
+                dot.node(current_node, f'Decision: {line.strip()}')
+                dot.edge(previous_node, current_node)
+                previous_node = current_node
+            elif "for" in line or "while" in line:
+                dot.node(current_node, f'Loop: {line.strip()}')
+                dot.edge(previous_node, current_node)
+                previous_node = current_node
+            else:
+                dot.node(current_node, f'Process: {line.strip()}')
+                dot.edge(previous_node, current_node)
+                previous_node = current_node
+
+        dot.node('End', 'End')
+        dot.edge(previous_node, 'End')
+        
+        return dot
+
+    def generate_pseudocode(self, code):
+        pseudocode = self.code_to_pseudocode(code)
+        self.show_message(pseudocode, "Pseudocode")
+
+    def generate_algorithm(self, code):
+        algorithm = self.code_to_algorithm(code)
+        self.show_message(algorithm, "Algorithm")
+
+    def show_message(self, message, title):
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle(title)
+        msg_box.setText(message)
+        msg_box.exec()
+
+    def code_to_pseudocode(self, code):
+        lines = code.splitlines()
+        pseudocode = ""
+        for line in lines:
+            if "{" in line or "}" in line:
+                continue
+            pseudocode += line.strip() + "\n"
+        return pseudocode.strip()
     
+    def code_to_algorithm(self, code):
+        lines = code.splitlines()
+        algorithm = "Algorithm Steps:\n"
+        step_count = 1
+        for line in lines:
+            if "{" in line or "}" in line:
+                continue
+            algorithm += f"Step {step_count}: " + line.strip() + "\n"
+            step_count += 1
+        return algorithm.strip()
+    
+    def display_flowchart(self, flowchart):
+        try:
+            # Render the flowchart directly into memory (byte array)
+            flowchart_png = flowchart.pipe(format='png')
+            
+            # Load the byte data into QPixmap
+            image = Image.open(BytesIO(flowchart_png))
+            image_data = image.convert("RGBA")  # Ensure it's in the right format for QPixmap
+            width, height = image_data.size
+            qimage = QPixmap.fromImage(image_data.tobytes(), width, height)
+            
+            # Show the flowchart in the wizard
+            self.show_flowchart_wizard(qimage)
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Error", str(e))
+
+    def show_flowchart_wizard(self, pixmap):
+        wizard = QWizard(self)
+        wizard.setWindowTitle("Flowchart Wizard")
+        
+        # Create a wizard page to hold the flowchart
+        page = QWizardPage()
+        page.setTitle("Flowchart")
+        
+        # Create a QLabel to display the flowchart image
+        label = QLabel()
+        label.setPixmap(pixmap)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        # Create a QScrollArea to allow scrolling if the image is large
+        scroll_area = QScrollArea()
+        scroll_area.setWidget(label)
+        scroll_area.setWidgetResizable(True)  # Automatically adjust the scroll area for resizing
+        scroll_area.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Center the image in the scroll area
+        
+        # Set the scroll area in the layout of the wizard page
+        layout = QVBoxLayout()
+        layout.addWidget(scroll_area)
+        page.setLayout(layout)
+        
+        # Add the page to the wizard
+        wizard.addPage(page)
+        
+        # Show the wizard
+        wizard.exec()
+        
     def on_format_code_clicked(self):
         current_widget = self.tab_widget.currentWidget()
         if current_widget is not None and hasattr(current_widget, 'file_path'):
