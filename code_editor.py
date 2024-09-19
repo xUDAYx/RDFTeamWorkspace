@@ -15,7 +15,7 @@ import time
 import shutil
 from pc_view import PCView
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-from PyQt6.QtGui import QSyntaxHighlighter,QIcon
+from PyQt6.QtGui import QSyntaxHighlighter,QIcon,QImage
 from PyQt6.Qsci import QsciDocument
 from PyQt6.QtWidgets import QWizard,QWizardPage,QScrollArea, QDialog,QPlainTextEdit,QProgressDialog, QProgressBar,QInputDialog,QLabel, QMainWindow,QLineEdit,QMenu, QVBoxLayout, QWidget, QSplitter, QDialogButtonBox, QTreeView, QToolBar, QFileDialog, QToolButton, QTabWidget, QApplication, QMessageBox, QPushButton, QTextEdit, QScrollBar, QHBoxLayout, QSizePolicy
 from PyQt6.QtGui import  QTextCharFormat,QAction, QPixmap, QFileSystemModel, QIcon, QFont, QPainter, QColor, QTextFormat, QTextCursor, QKeySequence, QShortcut
@@ -1183,16 +1183,21 @@ class CodeEditor(QMainWindow):
         try:
             # Render the flowchart directly into memory (byte array)
             flowchart_png = flowchart.pipe(format='png')
-            
-            # Load the byte data into QPixmap
+        
+            # Load the byte data into an image (using Pillow)
             image = Image.open(BytesIO(flowchart_png))
-            image_data = image.convert("RGBA")  # Ensure it's in the right format for QPixmap
+            image_data = image.convert("RGBA")  # Ensure it's in RGBA format
+        
+            # Convert the image to QImage
             width, height = image_data.size
-            qimage = QPixmap.fromImage(image_data.tobytes(), width, height)
-            
+            qimage = QImage(image_data.tobytes(), width, height, QImage.Format.Format_RGBA8888)
+        
+            # Convert QImage to QPixmap
+            pixmap = QPixmap.fromImage(qimage)
+        
             # Show the flowchart in the wizard
-            self.show_flowchart_wizard(qimage)
-            
+            self.show_flowchart_wizard(pixmap)
+    
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e))
 
