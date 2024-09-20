@@ -49,3 +49,59 @@ class ImproveAlgorithm:
         except Exception as e:
             # Handle exceptions and return a message or an empty string
             return f"An error occurred while enhancing the algorithm: {str(e)}"
+        
+class CodeImprover:
+    def _init_(self, api_key: str):
+        genai.configure(api_key=api_key)
+        self.model = genai.GenerativeModel("gemini-1.5-flash")
+
+    def improve_names(self, code: str):
+        prompt = (
+            f"Improve the variable and function names or HTML elements in the following code. "
+            f"Ensure the names are more descriptive and aligned with best practices, but do not modify the code's functionality. "
+            f"At the top of the code, add <!--RDF Studio AI has improved the function and variable names-->'. Return only the modified code:\n\n{code}"
+        )
+        response = self.model.generate_content(prompt)
+
+        # Removing extra text if present
+        improved_code = response.text
+        improved_code = re.sub(r"[\w]*\n", '', improved_code)
+        improved_code = re.sub(r"\n", '', improved_code)
+
+        return improved_code
+    
+class CommentAdder:
+    def _init_(self, api_key: str):
+        # Configure the generative model with the provided API key
+        genai.configure(api_key=api_key)
+        self.model = genai.GenerativeModel("gemini-1.5-flash")
+
+    def add_comments(self, code: str) -> str:
+        # Prepare prompt to instruct the model to add comments to each line of code
+        prompt = f"Add explanatory comments to each line of the following code. Do not include any code block markers. Return the code with comments:\n\n{code}"
+        response = self.model.generate_content(prompt)
+        
+        # Extract the commented code from the model's response
+        commented_code = response.text
+
+        # Clean up the response if there are any unnecessary code block markers
+        commented_code = re.sub(r"[\w]*\n", '', commented_code)
+        commented_code = re.sub(r"\n", '', commented_code)
+        
+        return commented_code
+    
+class ImprovedCode:
+    def __init__(self, api_key: str):
+        genai.configure(api_key=api_key)
+        self.model = genai.GenerativeModel("gemini-1.5-flash")
+
+    def improve_code(self, code: str) :
+        prompt = f"Format the following  code and return only the improved code and at the top of the line add comment that 'RDF Studio AI has improved your code Successfully' and dont add comment '''php '''.:\n\n{code}"
+        response = self.model.generate_content(prompt) 
+
+        improved_code = response.text
+
+        improved_code = re.sub(r"```[\w]*\n", '', improved_code)
+        improved_code = re.sub(r"\n```", '', improved_code)
+
+        return improved_code

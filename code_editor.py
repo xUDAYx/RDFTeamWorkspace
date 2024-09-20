@@ -34,7 +34,7 @@ from code_formatter import CodeFormatter
 from OpenProject import OpenProjectWizard
 from ref_view import ReferenceView
 from publish import PublishWizard
-from AI import CodeFormatter
+from AI import CodeFormatter,ImproveAlgorithm,CodeImprover,CommentAdder,ImprovedCode
 from file_view import FileView
 from downloads import Download,DownloadUIThread,DownloadDailog,DownloadProjectsThread,DownloadFeaturesThread
 
@@ -289,6 +289,10 @@ class CodeEditor(QMainWindow):
 
             api_key = "AIzaSyC9yY9s7dH-TAvszp-skbdUlegWe9h3Z2E"
             self.code_formatter = CodeFormatter(api_key)
+            self.improve_algorithm =ImproveAlgorithm(api_key="AIzaSyCI3ULZp4GBUnsplCvP-J-r5A4DkGDDbFs")
+            self.code_improver = CodeImprover(api_key="AIzaSyCgrFfXoFus3Y4-IC43uV8D-Yqo0ief1yA")
+            self.comment_adder = CommentAdder(api_key="AIzaSyD2JD4H3CQDF-nal_XGkqfVKhru4rNciiE")
+            self.improvecode = ImprovedCode(api_key)
 
             self.pc_view_active = False  # Add this line to track PC view state
             self.update_thread = None
@@ -443,9 +447,11 @@ class CodeEditor(QMainWindow):
             self.code_format_action = QAction("Code Format",self)
             self.code_format_action.triggered.connect(self.on_format_code_clicked)
             self.Add_Comment_Action = QAction("Add Comments")
+            self.Add_Comment_Action.triggered.connect(self.on_comment_code_clicked)
             self.Add_Code_Quality_Action = QAction("Add code Quality",self)
             self.Imrove_Variable_Names_Action = QAction("Improve Variable and function names",self)
-            self.Improve_Code_Quality = QAction("Improve Code Quality",self)
+            self.Imrove_Variable_Names_Action.triggered.connect(self.on_improve_code_clicked)
+            # self.Improve_Code_Quality = QAction("Improve Code Quality",self)
             self.suggest_an_improved_Algorithm_Action = QAction("Suggest an improved algorithm", self)
             self.suggest_an_improved_Algorithm_Action.triggered.connect(self.on_improve_algorithm_clicked)
              # Add the actions for flowchart, pseudocode, algorithm
@@ -462,7 +468,6 @@ class CodeEditor(QMainWindow):
             AI_menu.addAction(self.Add_Comment_Action)
             AI_menu.addAction(self.Add_Code_Quality_Action)
             AI_menu.addAction(self.Imrove_Variable_Names_Action)
-            AI_menu.addAction(self.Improve_Code_Quality)
             AI_menu.addAction(self.flowchart_action)
             AI_menu.addAction(self.pseudocode_action)
             AI_menu.addAction(self.algorithm_action)
@@ -477,9 +482,6 @@ class CodeEditor(QMainWindow):
             AI_Power_Button.setStyleSheet("QToolButton::menu-indicator { image: none; }")
 
             self.toolbar.addWidget(AI_Power_Button)
-
-              
-            
 
             # Add the toolbar to the main layout
 
@@ -1080,6 +1082,55 @@ class CodeEditor(QMainWindow):
         except Exception as e:
             print(f"Failed to open new tab: {e}")
 
+    def on_improved_code_clicked(self):
+        current_widget = self.tab_widget.currentWidget()
+        if current_widget is not None and hasattr(current_widget, 'file_path'):
+            editor = current_widget.findChild(CustomCodeEditor)
+            if editor:
+                file_path = current_widget.file_path
+                self.improve_current_code(editor, file_path)
+    
+    def improve_current_code(self, editor, file_path):
+        try:
+            input_code = editor.text()
+            language = self.get_language_from_extension(file_path)
+            
+            if language == "Unknown":
+                QMessageBox.warning(self, "Warning", f"Could not determine the language for {file_path}")
+                return
+
+            improved_code = self.improvecode.improve_code(input_code)
+            editor.setText(improved_code)
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"failed to improve code: {e}")
+
+
+    def on_comment_code_clicked(self):
+        current_widget = self.tab_widget.currentWidget()
+        if current_widget is not None and hasattr(current_widget, 'file_path'):
+            editor = current_widget.findChild(CustomCodeEditor)
+            if editor:
+                file_path = current_widget.file_path
+                self.add_comments_to_code(editor, file_path)
+
+    def add_comments_to_code(self, editor, file_path):
+        try:
+            input_code = editor.text()
+            if not input_code:
+                QMessageBox.warning(self, "Warning", "No code to add comments!")
+                return
+
+            language = self.get_language_from_extension(file_path)
+            if language == "Unknown":
+                QMessageBox.warning(self, "Warning", f"Could not determine the language for {file_path}")
+                return
+            
+            commented_code = self.comment_adder.add_comments(input_code)
+            editor.setText(commented_code)
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to add comments: {e}")
+
     def on_generate_flowchart_clicked(self):
         current_widget = self.tab_widget.currentWidget()
         if current_widget is not None and hasattr(current_widget, 'file_path'):
@@ -1249,6 +1300,30 @@ class CodeEditor(QMainWindow):
         
         # Show the wizard
         wizard.exec()
+
+    def on_improve_code_clicked(self):
+        current_tab = self.tab_widget.currentWidget()
+        if current_tab is not None and hasattr(current_tab, 'file_path'):
+            code_editor = current_tab.findChild(CustomCodeEditor)
+            if code_editor:
+                current_file_path = current_tab.file_path
+                self.improve_code_names(code_editor, current_file_path)
+
+
+    def improve_code_names(self, code_editor, current_file_path):
+        try:
+            unrefined_code = code_editor.text()
+            programming_language = self.get_language_from_extension(current_file_path)
+
+            if programming_language == "Unknown":
+                QMessageBox.warning(self, "Warning", f"Could not determine the language for {current_file_path}")
+                return
+
+            improved_code = self.code_improver.improve_names(unrefined_code)
+            code_editor.setText(improved_code)
+
+        except Exception as error_message:
+            QMessageBox.critical(self, "Error", f"Failed to improve code: {error_message}")
         
     def on_format_code_clicked(self):
         current_widget = self.tab_widget.currentWidget()
