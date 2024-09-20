@@ -2,8 +2,9 @@ import sys
 import traceback
 import subprocess
 from PyQt6.QtGui import QIcon
-from PyQt6.QtWidgets import QApplication, QMessageBox, QCheckBox,  QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton
-from PyQt6.QtCore import Qt,QEvent
+from PyQt6.QtWidgets import QApplication, QMessageBox, QCheckBox,  QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton,QSplashScreen
+from PyQt6.QtCore import Qt,QEvent,QTimer
+from PyQt6.QtGui import QPixmap
 from code_editor import CodeEditor 
 from mobile_view import MobileView # Importing the CodeEditor from the separate module
 import os
@@ -48,22 +49,71 @@ def cleanup():
 class LoginDialog(QDialog):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Login")
-        self.setLayout(QVBoxLayout())
 
-        # Username and Password fields
+        self.setWindowTitle("Login")
+        self.setFixedSize(400, 300)  # Set a fixed size for the dialog
+
+        # Add a background image using stylesheets
+        self.setStyleSheet("""
+            QDialog {
+                background-color:grey;
+                border-radius: 15px;
+            }
+            QLabel, QCheckBox {
+                color: black;
+                font-size: 14px;
+            }
+            QLineEdit {
+                padding: 5px;
+                border: 2px solid #5a5a5a;
+                border-radius: 10px;
+                background-color: rgba(255, 255, 255, 0.7);
+            }
+            QPushButton {
+                background-color: orange;
+                color: white;
+                font-size: 14px;
+                padding: 10px;
+                border: none;
+                border-radius: 10px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+
+        # Create the layout and add the elements
+        layout = QVBoxLayout()
+
+        # Title Label (optional, to make it more attractive)
+        title_label = QLabel("Welcome to RDF Studio")
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title_label.setStyleSheet("font-size: 18px; font-weight: bold; color: white;")
+        layout.addWidget(title_label)
+
+        # Username Label and Input
         self.username_label = QLabel("Email:")
         self.username_input = QLineEdit()
+        layout.addWidget(self.username_label)
+        layout.addWidget(self.username_input)
+
+        # Password Label and Input
         self.password_label = QLabel("Password:")
         self.password_input = QLineEdit()
         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
+        layout.addWidget(self.password_label)
+        layout.addWidget(self.password_input)
 
-        # "Remember Me" checkbox
+        # Remember Me Checkbox
         self.remember_me_checkbox = QCheckBox("Remember Me")
+        layout.addWidget(self.remember_me_checkbox)
 
-        # Login button
+        # Login Button
         self.login_button = QPushButton("Login")
         self.login_button.clicked.connect(self.login)
+        layout.addWidget(self.login_button)
+
+        self.setLayout(layout)
 
         # Adding widgets to layout
         self.layout().addWidget(self.username_label)
@@ -121,18 +171,18 @@ class LoginDialog(QDialog):
                 settings.clear()
 
 
-
-if __name__ == "__main__":
+def main():
     app = QApplication(sys.argv)
-
     start_xampp()
-    
+
     # Show login dialog first
     login_dialog = LoginDialog()
     if login_dialog.exec() == QDialog.DialogCode.Accepted:
         # Start the IDE if login is successful
         main_window = CodeEditor(login_dialog.username_input.text())
         main_window.show()
-    
     # Start the event loop
     sys.exit(app.exec())
+
+if __name__ == "__main__":
+    main()

@@ -446,6 +446,8 @@ class CodeEditor(QMainWindow):
             self.Add_Code_Quality_Action = QAction("Add code Quality",self)
             self.Imrove_Variable_Names_Action = QAction("Improve Variable and function names",self)
             self.Improve_Code_Quality = QAction("Improve Code Quality",self)
+            self.suggest_an_improved_Algorithm_Action = QAction("Suggest an improved algorithm", self)
+            self.suggest_an_improved_Algorithm_Action.triggered.connect(self.on_improve_algorithm_clicked)
              # Add the actions for flowchart, pseudocode, algorithm
             self.flowchart_action = QAction("Generate Flowchart", self)
             self.flowchart_action.triggered.connect(self.on_generate_flowchart_clicked)
@@ -464,6 +466,7 @@ class CodeEditor(QMainWindow):
             AI_menu.addAction(self.flowchart_action)
             AI_menu.addAction(self.pseudocode_action)
             AI_menu.addAction(self.algorithm_action)
+            AI_menu.addAction(self.suggest_an_improved_Algorithm_Action)
 
 
 
@@ -1009,21 +1012,10 @@ class CodeEditor(QMainWindow):
             publish_button.setStyleSheet("background-color:red;color:white;font-weight:bold;border-radius:5px;padding:5px 10px")
             publish_button.clicked.connect(self.on_publish)
 
-            format_button = QPushButton("Format Code")
-            format_button.clicked.connect(lambda: self.format_current_code(editor, file_path))
-            format_button.setStyleSheet("background-color:#f0f0f0;border-radius:5px;padding:4px 10px;border:1px solid #ccc")
-            
-            # Create an instance of ReferenceView
-            
-
-            # Add a button to the toolbar to show/hide the reference view
-            
-
             search_tab_layout = QHBoxLayout()
             search_tab_layout.addStretch()
             
-            search_tab_layout.addWidget(publish_button)
-            search_tab_layout.addWidget(format_button)  # Add the format button to the layout
+            search_tab_layout.addWidget(publish_button)  
             layout.addLayout(search_tab_layout)
 
             splitter = QSplitter(Qt.Orientation.Vertical)
@@ -1152,6 +1144,33 @@ class CodeEditor(QMainWindow):
     def generate_algorithm(self, code):
         algorithm = self.code_to_algorithm(code)
         self.show_message(algorithm, "Algorithm")
+
+    def on_improve_algorithm_clicked(self):
+        current_widget = self.tab_widget.currentWidget()
+        if current_widget is not None and hasattr(current_widget, 'file_path'):
+            editor = current_widget.findChild(CustomCodeEditor)
+            if editor:
+                if not editor:
+                    QMessageBox.warning(self, "Error", "No code editor found to improve the algorithm.")
+                    return
+                file_path = current_widget.file_path
+                self.improve_current_algo(editor, file_path)
+
+
+    def improve_current_algo(self, editor, file_path):
+        try:
+            input_code = editor.text()
+            language = self.get_language_from_extension(file_path)
+            
+            if language == "Unknown":
+                QMessageBox.warning(self, "Warning", f"Could not determine the language for {file_path}")
+                return
+
+            improved_algorithm = self.improve_algorithm.improve_algorithm(input_code)
+            editor.setText(improved_algorithm)
+    
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to improve algo: {e}")
 
     def show_message(self, message, title):
         msg_box = QMessageBox(self)

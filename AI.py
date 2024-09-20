@@ -21,3 +21,31 @@ class CodeFormatter:
         # For example, you might check for code-specific patterns, comments, or remove unwanted lines
 
         return formatted_code
+    
+class ImproveAlgorithm:
+    def __init__(self, api_key: str):
+        genai.configure(api_key=api_key)
+        self.model = genai.GenerativeModel("gemini-1.5-flash")
+
+    def improve_algorithm(self, algorithm_code: str) -> str:
+        try:
+            # Construct the prompt for the generative model
+            prompt = (f"Improve the following algorithm and return only the improved code. "
+                      f"At the top of the line, add a comment that 'RDF Studio AI has improved your algorithm successfully' "
+                      f"and don't add a comment '''python'''.\n\n{algorithm_code}")
+            
+            # Generate content using the model
+            response = self.model.generate_content(prompt)
+            
+            # Extract the generated text
+            improved_algo = response.text
+            
+            # Clean up any extra formatting or comments that might have been added by the model
+            improved_algo = re.sub(r"```[\w]*\n", '', improved_algo)
+            improved_algo = re.sub(r"\n```", '', improved_algo)
+
+            return improved_algo
+        
+        except Exception as e:
+            # Handle exceptions and return a message or an empty string
+            return f"An error occurred while enhancing the algorithm: {str(e)}"
