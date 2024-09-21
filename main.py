@@ -1,18 +1,14 @@
 import sys
 import traceback
 import subprocess
-from PyQt6.QtGui import QIcon
-from PyQt6.QtWidgets import QApplication, QMessageBox, QCheckBox,  QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton,QSplashScreen
-from PyQt6.QtCore import Qt,QEvent,QTimer
-from PyQt6.QtGui import QPixmap
-from code_editor import CodeEditor 
-from mobile_view import MobileView # Importing the CodeEditor from the separate module
-import os
+from PyQt6.QtGui import QIcon, QPixmap, QFont, QPalette, QColor
+from PyQt6.QtWidgets import QApplication, QMessageBox, QCheckBox,  QHBoxLayout, QFormLayout, QFrame, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton
+from PyQt6.QtCore import Qt, QTimer, QSettings
+from datetime import datetime, timedelta
 import psutil
 import requests
 import urllib.parse
-from PyQt6.QtCore import QSettings, Qt,pyqtSignal
-from datetime import datetime, timedelta
+from code_editor import CodeEditor  # Assuming your CodeEditor is a separate widget
 
 # Custom exception hook for detailed error reporting
 def excepthook(exc_type, exc_value, exc_traceback):
@@ -29,14 +25,14 @@ sys.excepthook = excepthook
 
 def is_apache_running():
     for proc in psutil.process_iter(['pid', 'name']):
-        if proc.info['name'] == 'httpd.exe' or proc.info['name'] == 'apache.exe':
+        if proc.info['name'] in ['httpd.exe', 'apache.exe']:
             return True
     return False
 
 def start_xampp():
     if not is_apache_running():
         try:
-            subprocess.Popen([r'C:\xampp\xampp-control.exe'])
+            subprocess.Popen([r'C:\\xampp\\xampp-control.exe'])
             print("Starting XAMPP Control Panel...")
         except Exception as e:
             print(f"Error starting XAMPP: {e}")
@@ -46,88 +42,138 @@ def start_xampp():
 def cleanup():
     print("Performing cleanup tasks...")
 
-class LoginDialog(QDialog):
+class LoginPage(QWidget):
     def __init__(self):
         super().__init__()
+        self.init_ui()
+        self.load_remembered_session()
 
-        self.setWindowTitle("Login")
-        self.setFixedSize(400, 300)  # Set a fixed size for the dialog
+    def init_ui(self):
+        # Create widgets
+        self.image_label = QLabel()
+        pixmap = QPixmap("RDF.png")  # Update with the path to your image
+        self.image_label.setPixmap(pixmap.scaled(250, 250, Qt.AspectRatioMode.KeepAspectRatio))
 
-        # Add a background image using stylesheets
-        self.setStyleSheet("""
-            QDialog {
-                background-color:grey;
-                border-radius: 15px;
-            }
-            QLabel, QCheckBox {
-                color: black;
-                font-size: 14px;
-            }
-            QLineEdit {
-                padding: 5px;
-                border: 2px solid #5a5a5a;
+        image_frame = QFrame()
+        image_frame.setLayout(QVBoxLayout())
+        image_frame.layout().addWidget(self.image_label)
+        image_frame.setStyleSheet("""
+            QFrame {
+                border: 5px solid transparent;
                 border-radius: 10px;
-                background-color: rgba(255, 255, 255, 0.7);
+                background-color: white;
             }
-            QPushButton {
-                background-color: orange;
-                color: white;
-                font-size: 14px;
-                padding: 10px;
-                border: none;
+            QLabel {
                 border-radius: 10px;
             }
-            QPushButton:hover {
-                background-color: #45a049;
+            QFrame:hover {
+                box-shadow: 0px 0px 10px 5px rgba(0, 0, 0, 0.5);
             }
         """)
 
-        # Create the layout and add the elements
-        layout = QVBoxLayout()
+        welcome_label = QLabel("Welcome to RDF Studio")
+        welcome_label.setFont(QFont("Arial", 32, QFont.Weight.Bold))
+        welcome_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        welcome_label.setStyleSheet("color: black; font-size: 25px;")
 
-        # Title Label (optional, to make it more attractive)
-        title_label = QLabel("Welcome to RDF Studio")
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_label.setStyleSheet("font-size: 18px; font-weight: bold; color: white;")
-        layout.addWidget(title_label)
+        email_label = QLabel("Email:")
+        password_label = QLabel("Password:")
 
-        # Username Label and Input
-        self.username_label = QLabel("Email:")
-        self.username_input = QLineEdit()
-        layout.addWidget(self.username_label)
-        layout.addWidget(self.username_input)
-
-        # Password Label and Input
-        self.password_label = QLabel("Password:")
+        self.email_input = QLineEdit()
         self.password_input = QLineEdit()
         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
-        layout.addWidget(self.password_label)
-        layout.addWidget(self.password_input)
 
-        # Remember Me Checkbox
         self.remember_me_checkbox = QCheckBox("Remember Me")
-        layout.addWidget(self.remember_me_checkbox)
-
-        # Login Button
         self.login_button = QPushButton("Login")
+        self.login_button.setFixedWidth(70)
+        self.login_button.setStyleSheet("background-color: blue;")
         self.login_button.clicked.connect(self.login)
-        layout.addWidget(self.login_button)
 
-        self.setLayout(layout)
+        self.apply_styles()
 
-        # Adding widgets to layout
-        self.layout().addWidget(self.username_label)
-        self.layout().addWidget(self.username_input)
-        self.layout().addWidget(self.password_label)
-        self.layout().addWidget(self.password_input)
-        self.layout().addWidget(self.remember_me_checkbox)
-        self.layout().addWidget(self.login_button)
+        # Set layouts
+        form_layout = QFormLayout()
+        form_layout.addRow(email_label, self.email_input)
+        form_layout.addRow(password_label, self.password_input)
 
-        # Load remembered session if available
-        self.load_remembered_session()
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(self.remember_me_checkbox)
+        button_layout.addStretch(1)
+        button_layout.addWidget(self.login_button)
+
+        left_layout = QVBoxLayout()
+        left_layout.addStretch()
+        left_layout.addLayout(form_layout)
+        left_layout.addStretch()
+        left_layout.addLayout(button_layout)
+
+        left_frame = QFrame()
+        left_frame.setLayout(left_layout)
+        left_frame.setStyleSheet("background-color:#E3F2FD;")
+
+        right_layout = QVBoxLayout()
+        right_layout.setSpacing(0)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.addWidget(image_frame, alignment=Qt.AlignmentFlag.AlignCenter)
+        right_layout.addWidget(welcome_label, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        right_frame = QFrame()
+        right_frame.setLayout(right_layout)
+        right_frame.setStyleSheet("background-color: white; padding: 20px;")
+
+        main_layout = QHBoxLayout()
+        main_layout.setSpacing(0)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.addWidget(left_frame, 6)
+        main_layout.addWidget(right_frame, 5)
+
+        self.setLayout(main_layout)
+
+        # Window settings
+        self.setWindowTitle("Login Page")
+        self.setGeometry(500, 200, 700, 400)  # Adjusted height for better layout
+
+    def apply_styles(self):
+        self.setStyleSheet("""
+            QWidget {
+                background-color: #F0F0F0;
+            }
+            QLabel {
+                font-family: Arial;
+                font-size: 14px;
+                color: #333;
+            }
+            QLineEdit {
+                border: 1px solid black;
+                border-radius: 5px;
+                padding: 5px;
+                font-size: 14px;
+            }
+            QPushButton {
+                background-color:Blue;
+                color: white;
+                padding: 8px;
+                border: none;
+                border-radius: 5px;
+                font-size: 14px;
+                font-family: Arial;
+            }
+            QPushButton:hover {
+                background-color: black;
+            }
+            QCheckBox {
+                font-size: 12px;
+            }
+        """)
+
+        palette = QPalette()
+        gradient = QColor(220, 220, 220)
+        palette.setColor(QPalette.ColorRole.Window, gradient)
+        self.setAutoFillBackground(True)
+        self.setPalette(palette)
 
     def login(self):
-        email = self.username_input.text()
+        email = self.email_input.text()
         password = self.password_input.text()
 
         encoded_email = urllib.parse.quote(email)
@@ -137,16 +183,18 @@ class LoginDialog(QDialog):
 
         try:
             response = requests.get(url)
-
             if response.text.strip() == "1":
-                QMessageBox.information(self, "Login", "Login successful!")
+                # No need to show the message here; we will handle success in handle_login
                 if self.remember_me_checkbox.isChecked():
                     self.remember_user_session(email)
-                self.accept()  # Close dialog and continue
+                return True  # Indicate successful login
             else:
                 QMessageBox.warning(self, "Login Failed", "Incorrect email or password.")
+                return False  # Indicate failed login
         except requests.RequestException as e:
             QMessageBox.critical(self, "Error", f"Error connecting to server: {e}")
+            return False  # Indicate failed login
+
 
     def remember_user_session(self, email):
         settings = QSettings("YourCompany", "YourApp")
@@ -162,27 +210,45 @@ class LoginDialog(QDialog):
         if remembered_email and remembered_expiration:
             expiration_time = datetime.fromtimestamp(remembered_expiration)
             if datetime.now() < expiration_time:
-                # Automatically log in the user if within 24 hours
-                self.username_input.setText(remembered_email)
+                self.email_input.setText(remembered_email)
                 self.remember_me_checkbox.setChecked(True)
-                self.login()
-            else:
-                # Clear the remembered session if expired
-                settings.clear()
-
 
 def main():
     app = QApplication(sys.argv)
-    start_xampp()
+    start_xampp()  # Assuming this starts your server
 
-    # Show login dialog first
-    login_dialog = LoginDialog()
-    if login_dialog.exec() == QDialog.DialogCode.Accepted:
-        # Start the IDE if login is successful
-        main_window = CodeEditor(login_dialog.username_input.text())
-        main_window.show()
+    # Create the login page widget
+    login_page = LoginPage()
+
+    # Show the login page
+    login_page.show()
+
+    # Connect the login button to handle login action
+    login_page.login_button.clicked.connect(lambda: handle_login(login_page))
+
     # Start the event loop
     sys.exit(app.exec())
 
-if __name__ == "__main__":
+def handle_login(login_page):
+    if login_page.login():  # Call the login method to check credentials
+        # Show the success message here, after login succeeds
+        QMessageBox.information(login_page, "Login", "Login successful!")
+        
+        # If login is successful, hide the login page and show the main window
+        login_page.hide()
+
+        # Show the main window (CodeEditor)
+        main_window = CodeEditor(login_page.email_input.text())  # Pass the email to the CodeEditor
+        main_window.show()
+
+        # Keep the main window reference alive to prevent garbage collection
+        login_page.main_window = main_window  # Keep a reference to prevent garbage collection
+
+    else:
+        QMessageBox.warning(login_page, "Login Failed", "Incorrect email or password.")
+
+
+
+
+if __name__ == '__main__':
     main()

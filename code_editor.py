@@ -51,9 +51,16 @@ class MultiLanguageHighlighter(QsciAbstractAPIs):
             self.editor.setLexer(QsciLexerJavaScript())
         elif language == "css":
             self.editor.setLexer(QsciLexerCSS())
-        elif language == "python":
-            self.editor.setLexer(QsciLexerPython())
-            
+        else:
+            lexer = None
+
+        if lexer:
+            lexer.setDefaultPaper(QColor("#FFFFFF"))  # Set white background for all lexers
+            lexer.setDefaultColor(QColor("#000000"))  # Set default text color to black
+            self.setLexer(lexer)
+            self.setCaretLineVisible(True)
+            self.setCaretLineBackgroundColor(QColor("#E0E0E0")) 
+        
     
     def autoCompletionSource(self, source):
         return self.highlighter_rules.get(source, [])
@@ -88,7 +95,6 @@ class CustomCodeEditor(QsciScintilla):
             super().__init__()
             self.font_size = 12  # Default font size
             self.setup_editor()
-            self.SCI_CONTEXTMENU = QMenu(self)
         except Exception as e:
             print(f"Error initializing CustomCodeEditor: {e}")
             
@@ -175,7 +181,8 @@ class CustomCodeEditor(QsciScintilla):
         self.setFont(font)
 
         # Connect the context menu request signal to a custom method
-        self.SCI_CONTEXTMENU.connect(self.show_context_menu)
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.show_context_menu)
         
         
         # Adjust line number margin settings
@@ -190,10 +197,15 @@ class CustomCodeEditor(QsciScintilla):
         self.setAutoIndent(True)
         self.setWrapMode(QsciScintilla.WrapMode.WrapNone)
 
-        lexer = QsciLexerPython()
+        self.setIndentationGuidesForegroundColor(QColor("#808080"))
+
+        lexer = QsciLexerHTML()
         self.setLexer(lexer)
         self.setCaretLineVisible(True)
-        self.setCaretLineBackgroundColor(QColor("#E0E0E0"))
+        self.setCaretLineBackgroundColor(QColor("#FFEB3B"))  # Bright yellow for the caret line (like VS Code)
+        
+        # Optionally, set caret width to be more prominent
+        self.setCaretWidth(2)
 
         # Auto-completion settings
         self.setAutoCompletionSource(QsciScintilla.AutoCompletionSource.AcsAll)
@@ -271,7 +283,7 @@ class CodeEditor(QMainWindow):
             self.start_timer()
             self.installEventFilter(self)
 
-            self.setWindowIcon(QIcon(r"E:\RDFTeamWorkspace\icon\rdf_icon.ico"))
+            self.setWindowIcon(QIcon(r"E:\RDFTeamWorkspace-exe\icon\rdf_icon.ico"))
             
             self.setGeometry(100, 100, 800, 600)
             self.pc_view = PCView()
