@@ -7,7 +7,7 @@ class CodeFormatter:
         self.model = genai.GenerativeModel("gemini-1.5-flash")
 
     def format_code(self, code: str) :
-        prompt = f"Format the following code and return only the formatted code without adding any additional comments, text, or descriptions. Only return the code:\n\n{code}"
+        prompt = f"Format the following code and return only the formatted code without adding any additional comments, text, or descriptions. Only return the codeand at the top of the code add comment RDF Studio AI has Formatted code successfully:\n\n{code}"
         response = self.model.generate_content(prompt)
 
         # Extract the formatted code, remove any extra content
@@ -29,7 +29,7 @@ class ImproveAlgorithm:
         try:
             # Construct the precise prompt
             prompt = (f"Improve the following algorithm and return only the improved code. "
-                      f"Do not add any explanations or comments. Only return the improved code:\n\n{algorithm_code}")
+                      f"Do not add any explanations or comments. Only return the improved code and at the top of the code add comment RDF Studio AI has Improved Algorithm successfully:\n\n{algorithm_code}")
             
             # Generate content using the model
             response = self.model.generate_content(prompt)
@@ -55,7 +55,7 @@ class CodeImprover:
 
     def improve_names(self, code: str):
         prompt = (
-            f"Improve the variable and function names of the given code. Return only the improved code without any descriptions or explanations:\n\n{code}"
+            f"Improve the variable and function names of the given code. Return only the improved code without any descriptions or explanationsand at the top of the code add comment RDF Studio AI has Improved Variable and Functions name successfully:\n\n{code}"
         )
         response = self.model.generate_content(prompt)
 
@@ -74,7 +74,7 @@ class CommentAdder:
 
     def add_comments(self, code: str) -> str:
         # Prepare prompt to add comments without any extra content
-        prompt = f"Add explanatory comments to each line of the following code and return only the code with comments. Do not include any code block markers or extra text:\n\n{code}"
+        prompt = f"Add explanatory comments to each line of the following code and return only the code with comments. Do not include any code block markers or extra text and at the top of the code add comment RDF Studio AI has commented code successfully:\n\n{code}"
         response = self.model.generate_content(prompt)
         
         # Extract the commented code, clean up extra content
@@ -91,7 +91,7 @@ class ImprovedCode:
         self.model = genai.GenerativeModel("gemini-1.5-flash")
 
     def improve_code(self, code: str) :
-        prompt = f"Improve the following code and return only the improved code. Do not add any extra comments or descriptions. Only return the improved code:\n\n{code}"
+        prompt = f"Improve the following code and return only the improved code. Do not add any  descriptions. Only return the improved code and at the top of the code add comment RDF Studio AI has Improved code successfully :\n\n{code}"
         response = self.model.generate_content(prompt) 
 
         # Extract the improved code, clean up extra text

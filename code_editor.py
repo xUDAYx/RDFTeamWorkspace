@@ -51,16 +51,9 @@ class MultiLanguageHighlighter(QsciAbstractAPIs):
             self.editor.setLexer(QsciLexerJavaScript())
         elif language == "css":
             self.editor.setLexer(QsciLexerCSS())
-        else:
-            lexer = None
-
-        if lexer:
-            lexer.setDefaultPaper(QColor("#FFFFFF"))  # Set white background for all lexers
-            lexer.setDefaultColor(QColor("#000000"))  # Set default text color to black
-            self.setLexer(lexer)
-            self.setCaretLineVisible(True)
-            self.setCaretLineBackgroundColor(QColor("#E0E0E0")) 
-        
+        elif language == "python":
+            self.editor.setLexer(QsciLexerPython())
+            
     
     def autoCompletionSource(self, source):
         return self.highlighter_rules.get(source, [])
@@ -95,6 +88,7 @@ class CustomCodeEditor(QsciScintilla):
             super().__init__()
             self.font_size = 12  # Default font size
             self.setup_editor()
+            self.SCI_CONTEXTMENU = QMenu(self)
         except Exception as e:
             print(f"Error initializing CustomCodeEditor: {e}")
             
@@ -181,8 +175,7 @@ class CustomCodeEditor(QsciScintilla):
         self.setFont(font)
 
         # Connect the context menu request signal to a custom method
-        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.customContextMenuRequested.connect(self.show_context_menu)
+        self.SCI_CONTEXTMENU.connect(self.show_context_menu)
         
         
         # Adjust line number margin settings
@@ -197,15 +190,10 @@ class CustomCodeEditor(QsciScintilla):
         self.setAutoIndent(True)
         self.setWrapMode(QsciScintilla.WrapMode.WrapNone)
 
-        self.setIndentationGuidesForegroundColor(QColor("#808080"))
-
         lexer = QsciLexerHTML()
         self.setLexer(lexer)
         self.setCaretLineVisible(True)
-        self.setCaretLineBackgroundColor(QColor("#FFEB3B"))  # Bright yellow for the caret line (like VS Code)
-        
-        # Optionally, set caret width to be more prominent
-        self.setCaretWidth(2)
+        self.setCaretLineBackgroundColor(QColor("#FFEB3B")) 
 
         # Auto-completion settings
         self.setAutoCompletionSource(QsciScintilla.AutoCompletionSource.AcsAll)

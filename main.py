@@ -51,7 +51,7 @@ class LoginPage(QWidget):
     def init_ui(self):
         # Create widgets
         self.image_label = QLabel()
-        pixmap = QPixmap("RDF.png")  # Update with the path to your image
+        pixmap = QPixmap("images/RDF.png")  # Update with the path to your image
         self.image_label.setPixmap(pixmap.scaled(250, 250, Qt.AspectRatioMode.KeepAspectRatio))
 
         image_frame = QFrame()
