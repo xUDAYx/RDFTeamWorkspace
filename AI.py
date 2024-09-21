@@ -51,7 +51,7 @@ class ImproveAlgorithm:
             return f"An error occurred while enhancing the algorithm: {str(e)}"
         
 class CodeImprover:
-    def _init_(self, api_key: str):
+    def __init__(self, api_key: str):
         genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel("gemini-1.5-flash")
 
@@ -71,7 +71,7 @@ class CodeImprover:
         return improved_code
     
 class CommentAdder:
-    def _init_(self, api_key: str):
+    def __init__(self, api_key: str):
         # Configure the generative model with the provided API key
         genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel("gemini-1.5-flash")

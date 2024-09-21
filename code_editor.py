@@ -34,7 +34,7 @@ from code_formatter import CodeFormatter
 from OpenProject import OpenProjectWizard
 from ref_view import ReferenceView
 from publish import PublishWizard
-from AI import CodeFormatter,ImproveAlgorithm,CodeImprover,CommentAdder,ImprovedCode
+from AI import CodeFormatter,ImproveAlgorithm,CommentAdder,ImprovedCode,CodeImprover
 from file_view import FileView
 from downloads import Download,DownloadUIThread,DownloadDailog,DownloadProjectsThread,DownloadFeaturesThread
 
@@ -288,11 +288,13 @@ class CodeEditor(QMainWindow):
             self.urlGenerated.connect(self.mobile_view.load_time_tracking_url)
 
             api_key = "AIzaSyC9yY9s7dH-TAvszp-skbdUlegWe9h3Z2E"
+            api_key_2 = "AIzaSyCI3ULZp4GBUnsplCvP-J-r5A4DkGDDbFs"
+            api_key_3 = "AIzaSyD2JD4H3CQDF-nal_XGkqfVKhru4rNciiE"
             self.code_formatter = CodeFormatter(api_key)
-            self.improve_algorithm =ImproveAlgorithm(api_key="AIzaSyCI3ULZp4GBUnsplCvP-J-r5A4DkGDDbFs")
-            self.code_improver = CodeImprover(api_key="AIzaSyCgrFfXoFus3Y4-IC43uV8D-Yqo0ief1yA")
-            self.comment_adder = CommentAdder(api_key="AIzaSyD2JD4H3CQDF-nal_XGkqfVKhru4rNciiE")
+            self.improve_algorithm =ImproveAlgorithm(api_key_2)
+            self.comment_adder = CommentAdder(api_key_3)
             self.improvecode = ImprovedCode(api_key)
+            self.code_improver = CodeImprover(api_key)
 
             self.pc_view_active = False  # Add this line to track PC view state
             self.update_thread = None
@@ -446,9 +448,12 @@ class CodeEditor(QMainWindow):
 
             self.code_format_action = QAction("Code Format",self)
             self.code_format_action.triggered.connect(self.on_format_code_clicked)
+
             self.Add_Comment_Action = QAction("Add Comments")
             self.Add_Comment_Action.triggered.connect(self.on_comment_code_clicked)
+
             self.Add_Code_Quality_Action = QAction("Add code Quality",self)
+
             self.Imrove_Variable_Names_Action = QAction("Improve Variable and function names",self)
             self.Imrove_Variable_Names_Action.triggered.connect(self.on_improve_code_clicked)
             # self.Improve_Code_Quality = QAction("Improve Code Quality",self)
