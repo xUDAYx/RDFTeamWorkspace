@@ -130,7 +130,7 @@ class LoginPage(QWidget):
         self.setLayout(main_layout)
 
         # Window settings
-        self.setWindowTitle("Login Page")
+        self.setWindowTitle("RDF STUDIO")
         self.setGeometry(500, 200, 700, 400)  # Adjusted height for better layout
 
     def apply_styles(self):
