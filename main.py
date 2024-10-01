@@ -1,9 +1,9 @@
 import sys
 import traceback
 import subprocess
-from PyQt6.QtGui import QIcon, QPixmap, QFont, QPalette, QColor
-from PyQt6.QtWidgets import QApplication, QMessageBox, QCheckBox,  QHBoxLayout, QFormLayout, QFrame, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton
-from PyQt6.QtCore import Qt, QTimer, QSettings
+from PyQt6.QtGui import QIcon, QPixmap, QFont, QPalette, QColor,QPixmap
+from PyQt6.QtWidgets import QApplication, QMessageBox, QCheckBox, QSplashScreen,  QHBoxLayout, QFormLayout, QFrame, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton
+from PyQt6.QtCore import Qt, QTimer, QSettings, QPropertyAnimation
 from datetime import datetime, timedelta
 import psutil
 import requests
@@ -41,6 +41,40 @@ def start_xampp():
 
 def cleanup():
     print("Performing cleanup tasks...")
+
+class SplashScreen(QSplashScreen):
+    def __init__(self):
+        # Load the logo image for the splash screen
+        pixmap = QPixmap("RDF.png")  # Update with your actual image path
+        # Resize the image to a fixed size (e.g., 300x300)
+        pixmap = pixmap.scaled(300, 300, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        
+        super().__init__(pixmap)
+
+        self.setWindowFlag(Qt.WindowType.FramelessWindowHint)  # No window frame
+
+        # Display some text on splash screen
+        self.showMessage("Loading application...", Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignBottom, Qt.GlobalColor.white)
+
+        # Start fade-out animation after a delay (e.g., 3 seconds)
+        QTimer.singleShot(3000, self.start_fade_out)
+
+    def start_fade_out(self):
+        # Create a fade-out animation
+        self.fade_animation = QPropertyAnimation(self, b"windowOpacity")
+        self.fade_animation.setDuration(2000)  # 2 seconds duration for fade out
+        self.fade_animation.setStartValue(1)  # Fully visible
+        self.fade_animation.setEndValue(0)    # Fully transparent
+        self.fade_animation.finished.connect(self.show_login_page)  # Call login page after fade out
+        self.fade_animation.start()
+
+    def show_login_page(self):
+     self.close()  # Close the splash screen
+     self.login_page = LoginPage()  # Instantiate your existing login page
+     self.login_page.show() 
+     
+     self.login_page.login_button.clicked.connect(lambda: handle_login(self.login_page)) # Show the login page
+
 
 class LoginPage(QWidget):
     def __init__(self):
@@ -213,21 +247,7 @@ class LoginPage(QWidget):
                 self.email_input.setText(remembered_email)
                 self.remember_me_checkbox.setChecked(True)
 
-def main():
-    app = QApplication(sys.argv)
-    start_xampp()  # Assuming this starts your server
 
-    # Create the login page widget
-    login_page = LoginPage()
-
-    # Show the login page
-    login_page.show()
-
-    # Connect the login button to handle login action
-    login_page.login_button.clicked.connect(lambda: handle_login(login_page))
-
-    # Start the event loop
-    sys.exit(app.exec())
 
 def handle_login(login_page):
     if login_page.login():  # Call the login method to check credentials
@@ -249,6 +269,16 @@ def handle_login(login_page):
 
 
 
-
 if __name__ == '__main__':
-    main()
+    app = QApplication(sys.argv)
+    
+    # Create and show splash screen
+    splash = SplashScreen()
+    splash.show()
+
+    # Start your server (if needed) after splash screen is shown
+    start_xampp()
+
+    # Start the event loop
+    sys.exit(app.exec())
+   
