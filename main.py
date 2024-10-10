@@ -1,16 +1,19 @@
 import sys
+import os
+import threading
 import traceback
 import subprocess
-from PyQt6.QtGui import QIcon, QPixmap, QFont, QPalette, QColor,QPixmap
-from PyQt6.QtWidgets import QApplication, QMessageBox, QCheckBox, QSplashScreen,  QHBoxLayout, QFormLayout, QFrame, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton
-from PyQt6.QtCore import Qt, QTimer, QSettings, QPropertyAnimation
+import time
+from PyQt6.QtGui import QIcon, QPixmap, QFont, QPalette, QColor, QPixmap
+from PyQt6.QtWidgets import QApplication, QMessageBox, QSplashScreen, QWidget, QLabel, QVBoxLayout, QLineEdit, QPushButton, QFrame, QHBoxLayout, QFormLayout, QCheckBox
+from PyQt6.QtCore import Qt, QTimer, QThread,QSettings,QPropertyAnimation
 from datetime import datetime, timedelta
 import psutil
 import requests
 import urllib.parse
 from code_editor import CodeEditor  # Assuming your CodeEditor is a separate widget
 
-# Custom exception hook for detailed error reporting
+# Custom exception hook for error reporting
 def excepthook(exc_type, exc_value, exc_traceback):
     if issubclass(exc_type, KeyboardInterrupt):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
@@ -18,9 +21,14 @@ def excepthook(exc_type, exc_value, exc_traceback):
     print("Unhandled exception:", exc_type, exc_value)
     traceback.print_tb(exc_traceback)
     QMessageBox.critical(None, "Unhandled Exception", f"An error occurred: {exc_value}")
-    cleanup()
+    
 
-# Install the custom exception hook
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and PyInstaller """
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+
 sys.excepthook = excepthook
 
 def is_apache_running():
@@ -34,75 +42,72 @@ def start_xampp():
         try:
             subprocess.Popen([r'C:\\xampp\\xampp-control.exe'])
             print("Starting XAMPP Control Panel...")
+            time.sleep(5)  # Simulating wait for XAMPP to start
         except Exception as e:
             print(f"Error starting XAMPP: {e}")
     else:
         print("Apache server is already running.")
 
-def cleanup():
-    print("Performing cleanup tasks...")
+class BackgroundTasks(QThread):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._is_running = True
+
+    def run(self):
+        """This will run in a separate thread."""
+        while self._is_running:
+            start_xampp()
+            self._is_running = False  # Stop the thread after starting XAMPP
+
+    def stop(self):
+        """Gracefully stop the thread."""
+        self._is_running = False
+        self.quit()
+        self.wait()
+
+
 
 class SplashScreen(QSplashScreen):
     def __init__(self):
-        # Load the logo image for the splash screen
-        pixmap = QPixmap("RDF.png")  # Update with your actual image path
-        # Resize the image to a fixed size (e.g., 300x300)
+        pixmap = QPixmap(resource_path('images/RDF.png'))
         pixmap = pixmap.scaled(300, 300, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-        
         super().__init__(pixmap)
-
-        self.setWindowFlag(Qt.WindowType.FramelessWindowHint)  # No window frame
-
-        # Display some text on splash screen
+        self.setWindowFlag(Qt.WindowType.FramelessWindowHint)
         self.showMessage("Loading application...", Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignBottom, Qt.GlobalColor.white)
-
-        # Start fade-out animation after a delay (e.g., 3 seconds)
-        QTimer.singleShot(3000, self.start_fade_out)
+        QTimer.singleShot(3000, self.start_fade_out)  # Start fade out after 3 seconds
 
     def start_fade_out(self):
-        # Create a fade-out animation
         self.fade_animation = QPropertyAnimation(self, b"windowOpacity")
-        self.fade_animation.setDuration(2000)  # 2 seconds duration for fade out
-        self.fade_animation.setStartValue(1)  # Fully visible
-        self.fade_animation.setEndValue(0)    # Fully transparent
-        self.fade_animation.finished.connect(self.show_login_page)  # Call login page after fade out
+        self.fade_animation.setDuration(2000)
+        self.fade_animation.setStartValue(1)
+        self.fade_animation.setEndValue(0)
+        self.fade_animation.finished.connect(self.show_login_page)
         self.fade_animation.start()
 
     def show_login_page(self):
-     self.close()  # Close the splash screen
-     self.login_page = LoginPage()  # Instantiate your existing login page
-     self.login_page.show() 
-     
-     self.login_page.login_button.clicked.connect(lambda: handle_login(self.login_page)) # Show the login page
-
+        self.close()
+        self.login_page = LoginPage()
+        self.login_page.show()
 
 class LoginPage(QWidget):
     def __init__(self):
         super().__init__()
         self.init_ui()
         self.load_remembered_session()
+        self.background_thread = None
 
     def init_ui(self):
-        # Create widgets
+        # Initialize UI elements (similar to before)
         self.image_label = QLabel()
-        pixmap = QPixmap("images/RDF.png")  # Update with the path to your image
+        pixmap = QPixmap(resource_path('images/RDF.png'))
         self.image_label.setPixmap(pixmap.scaled(250, 250, Qt.AspectRatioMode.KeepAspectRatio))
 
         image_frame = QFrame()
         image_frame.setLayout(QVBoxLayout())
         image_frame.layout().addWidget(self.image_label)
         image_frame.setStyleSheet("""
-            QFrame {
-                border: 5px solid transparent;
-                border-radius: 10px;
-                background-color: white;
-            }
-            QLabel {
-                border-radius: 10px;
-            }
-            QFrame:hover {
-                box-shadow: 0px 0px 10px 5px rgba(0, 0, 0, 0.5);
-            }
+            QFrame { border: 5px solid transparent; border-radius: 10px; background-color: white; }
+            QLabel { border-radius: 10px; }
         """)
 
         welcome_label = QLabel("Welcome to RDF Studio")
@@ -123,9 +128,6 @@ class LoginPage(QWidget):
         self.login_button.setStyleSheet("background-color: blue;")
         self.login_button.clicked.connect(self.login)
 
-        self.apply_styles()
-
-        # Set layouts
         form_layout = QFormLayout()
         form_layout.addRow(email_label, self.email_input)
         form_layout.addRow(password_label, self.password_input)
@@ -162,54 +164,12 @@ class LoginPage(QWidget):
         main_layout.addWidget(right_frame, 5)
 
         self.setLayout(main_layout)
-
-        # Window settings
         self.setWindowTitle("RDF STUDIO")
-        self.setGeometry(500, 200, 700, 400)  # Adjusted height for better layout
-
-    def apply_styles(self):
-        self.setStyleSheet("""
-            QWidget {
-                background-color: #F0F0F0;
-            }
-            QLabel {
-                font-family: Arial;
-                font-size: 14px;
-                color: #333;
-            }
-            QLineEdit {
-                border: 1px solid black;
-                border-radius: 5px;
-                padding: 5px;
-                font-size: 14px;
-            }
-            QPushButton {
-                background-color:Blue;
-                color: white;
-                padding: 8px;
-                border: none;
-                border-radius: 5px;
-                font-size: 14px;
-                font-family: Arial;
-            }
-            QPushButton:hover {
-                background-color: black;
-            }
-            QCheckBox {
-                font-size: 12px;
-            }
-        """)
-
-        palette = QPalette()
-        gradient = QColor(220, 220, 220)
-        palette.setColor(QPalette.ColorRole.Window, gradient)
-        self.setAutoFillBackground(True)
-        self.setPalette(palette)
+        self.setGeometry(500, 200, 700, 400)
 
     def login(self):
         email = self.email_input.text()
         password = self.password_input.text()
-
         encoded_email = urllib.parse.quote(email)
         encoded_password = urllib.parse.quote(password)
 
@@ -218,17 +178,33 @@ class LoginPage(QWidget):
         try:
             response = requests.get(url)
             if response.text.strip() == "1":
-                # No need to show the message here; we will handle success in handle_login
                 if self.remember_me_checkbox.isChecked():
                     self.remember_user_session(email)
-                return True  # Indicate successful login
+                QMessageBox.information(self, "Login", "Login successful!")
+                
+                # Now, show the main window and close the login window
+                self.open_main_window()
+                
+                # Start the background thread to run XAMPP after login
+                self.background_thread = BackgroundTasks()
+                self.background_thread.start()
+
             else:
                 QMessageBox.warning(self, "Login Failed", "Incorrect email or password.")
-                return False  # Indicate failed login
         except requests.RequestException as e:
             QMessageBox.critical(self, "Error", f"Error connecting to server: {e}")
-            return False  # Indicate failed login
 
+    def open_main_window(self):
+        """Open the CodeEditor (main application window) and close the login page."""
+        self.main_window = CodeEditor(self.email_input.text())  # Pass the user email to CodeEditor
+        self.main_window.show()
+        self.close()  # Close the login page
+
+    def closeEvent(self, event):
+        """Override the close event to stop the thread when the app closes."""
+        if self.background_thread and self.background_thread.isRunning():
+            self.background_thread.stop()  # Gracefully stop the thread
+        super().closeEvent(event)
 
     def remember_user_session(self, email):
         settings = QSettings("YourCompany", "YourApp")
@@ -248,37 +224,11 @@ class LoginPage(QWidget):
                 self.remember_me_checkbox.setChecked(True)
 
 
-
-def handle_login(login_page):
-    if login_page.login():  # Call the login method to check credentials
-        # Show the success message here, after login succeeds
-        QMessageBox.information(login_page, "Login", "Login successful!")
-        
-        # If login is successful, hide the login page and show the main window
-        login_page.hide()
-
-        # Show the main window (CodeEditor)
-        main_window = CodeEditor(login_page.email_input.text())  # Pass the email to the CodeEditor
-        main_window.show()
-
-        # Keep the main window reference alive to prevent garbage collection
-        login_page.main_window = main_window  # Keep a reference to prevent garbage collection
-
-    else:
-        QMessageBox.warning(login_page, "Login Failed", "Incorrect email or password.")
-
-
-
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     
-    # Create and show splash screen
+    # Show splash screen instantly
     splash = SplashScreen()
     splash.show()
 
-    # Start your server (if needed) after splash screen is shown
-    start_xampp()
-
-    # Start the event loop
     sys.exit(app.exec())
-   

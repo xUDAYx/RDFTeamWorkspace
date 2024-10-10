@@ -27,7 +27,7 @@ from mobile_view import MobileView
 from project_view import ProjectView
 from new_project import NewProjectWizard
 from theme import DarkTheme
-from PyQt6.Qsci import QsciAbstractAPIs, QsciScintilla, QsciDocument,QsciLexerJSON
+from PyQt6.Qsci import QsciAbstractAPIs, QsciScintilla, QsciDocument,QsciLexerJSON,QsciLexerCPP
 from autocompleter import AutoCompleter
 from Rule_Engine import RuleEngine
 from code_formatter import CodeFormatter
@@ -51,35 +51,12 @@ class MultiLanguageHighlighter(QsciAbstractAPIs):
             self.editor.setLexer(QsciLexerJavaScript())
         elif language == "css":
             self.editor.setLexer(QsciLexerCSS())
-        elif language == "python":
-            self.editor.setLexer(QsciLexerPython())
+        elif language == "php":
+            self.editor.setLexer(QsciLexerCPP())
             
     
     def autoCompletionSource(self, source):
         return self.highlighter_rules.get(source, [])
-
-class MultiLanguageHighlighter(QSyntaxHighlighter):
-    def __init__(self, parent: QsciDocument):
-        super().__init__(parent)
-        self.highlighter_rules = {}
-
-    def set_language(self, language):
-        if language == "html":
-            self.setCurrentBlockState(0)
-            self.setCurrentBlockUserData(0)
-            self.highlightingRules = self.highlighter_rules.get("html", [])
-        elif language == "javascript":
-            self.setCurrentBlockState(0)
-            self.setCurrentBlockUserData(0)
-            self.highlightingRules = self.highlighter_rules.get("javascript", [])
-        elif language == "css":
-            self.setCurrentBlockState(0)
-            self.setCurrentBlockUserData(0)
-            self.highlightingRules = self.highlighter_rules.get("css", [])
-        elif language == "python":
-            self.setCurrentBlockState(0)
-            self.setCurrentBlockUserData(0)
-            self.highlightingRules = self.highlighter_rules.get("python", [])
 
 
 class CustomCodeEditor(QsciScintilla):
@@ -174,26 +151,37 @@ class CustomCodeEditor(QsciScintilla):
         font = QFont("Consolas", self.font_size)
         self.setFont(font)
 
-        # Connect the context menu request signal to a custom method
-        self.SCI_CONTEXTMENU.connect(self.show_context_menu)
-        
-        
-        # Adjust line number margin settings
-        self.setMarginLineNumbers(0, True)
-        self.setMarginWidth(0, self.fontMetrics().horizontalAdvance('0000') + 6)
-        self.setMarginsBackgroundColor(QColor("#FFFFFF"))  # Set background color of margins
-        self.setMarginsForegroundColor(QColor("#808080"))  # Set text color of margins
+        # Enable line numbers in the first margin (Margin 0)
+        self.setMarginType(0, QsciScintilla.MarginType.NumberMargin)  # Margin type for line numbers
+        self.setMarginLineNumbers(0, True)  # Enable line numbers
 
-        self.setEdgeMode(QsciScintilla.EdgeMode.EdgeLine)
-        self.setEdgeColumn(80)
+        # Adjust the margin width dynamically based on the number of lines in the editor
+        self.setMarginWidth(0, "0000")  # Adjust width for up to 9999 lines
+
+        # Set custom colors for the margin where line numbers appear
+        self.setMarginsBackgroundColor(QColor("#F0F0F0"))  # Light gray background
+        self.setMarginsForegroundColor(QColor("#000000"))  # Black text for line numbers
+
+        # Set indentation guides and auto-indentation
         self.setIndentationGuides(True)
         self.setAutoIndent(True)
+
+        # Set no line wrapping
         self.setWrapMode(QsciScintilla.WrapMode.WrapNone)
 
+        # Enable syntax highlighting (you can change the lexer for different languages)
         lexer = QsciLexerHTML()
         self.setLexer(lexer)
+
+        # Set custom color and style for indentation guides
+        # QsciScintilla uses style index 16 for indentation guides
+        lexer.setColor(QColor("#D3D3D3"), QsciLexerHTML.Default)  # Use 'Default' or another valid style index for whitespace
+        lexer.setFont(QFont("Consolas", self.font_size), QsciLexerHTML.Default)  # Set the font for the default style
+  # Set the font for the guides (affects line thickness)
+
+        # Enable highlighting for the current line
         self.setCaretLineVisible(True)
-        self.setCaretLineBackgroundColor(QColor("#FFEB3B")) 
+        self.setCaretLineBackgroundColor(QColor("#FFEB3B"))
 
         # Auto-completion settings
         self.setAutoCompletionSource(QsciScintilla.AutoCompletionSource.AcsAll)
@@ -201,6 +189,8 @@ class CustomCodeEditor(QsciScintilla):
         self.setAutoCompletionCaseSensitivity(False)
         self.setAutoCompletionReplaceWord(True)
         self.setAutoCompletionUseSingle(QsciScintilla.AutoCompletionUseSingle.AcusNever)
+
+
 
     def set_font_size(self, size):
         """Sets the font size for the editor."""
@@ -1409,7 +1399,7 @@ class CodeEditor(QMainWindow):
         elif language == 'css':
             return QsciLexerCSS()
         elif language == 'php':
-            return QsciLexerHTML()  # QsciLexerHTML can handle PHP
+            return QsciLexerCPP()  # QsciLexerHTML can handle PHP
         elif language == 'json':
             return QsciLexerJSON()  # You may need to import QsciLexerJSON
         else:
