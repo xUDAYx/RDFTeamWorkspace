@@ -5,8 +5,8 @@ import traceback
 import subprocess
 import time
 from PyQt6.QtGui import QIcon, QPixmap, QFont, QPalette, QColor, QPixmap
-from PyQt6.QtWidgets import QApplication, QMessageBox, QSplashScreen, QWidget, QLabel, QVBoxLayout, QLineEdit, QPushButton, QFrame, QHBoxLayout, QFormLayout, QCheckBox
-from PyQt6.QtCore import Qt, QTimer, QThread,QSettings,QPropertyAnimation
+from PyQt6.QtWidgets import QApplication, QMessageBox, QWidget, QLabel, QVBoxLayout, QLineEdit, QPushButton, QFrame, QHBoxLayout, QFormLayout, QCheckBox
+from PyQt6.QtCore import Qt, QTimer, QThread, QSettings
 from datetime import datetime, timedelta
 import psutil
 import requests
@@ -21,7 +21,6 @@ def excepthook(exc_type, exc_value, exc_traceback):
     print("Unhandled exception:", exc_type, exc_value)
     traceback.print_tb(exc_traceback)
     QMessageBox.critical(None, "Unhandled Exception", f"An error occurred: {exc_value}")
-    
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and PyInstaller """
@@ -64,30 +63,6 @@ class BackgroundTasks(QThread):
         self._is_running = False
         self.quit()
         self.wait()
-
-
-
-class SplashScreen(QSplashScreen):
-    def __init__(self):
-        pixmap = QPixmap(resource_path('images/RDF.png'))
-        pixmap = pixmap.scaled(300, 300, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-        super().__init__(pixmap)
-        self.setWindowFlag(Qt.WindowType.FramelessWindowHint)
-        self.showMessage("Loading application...", Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignBottom, Qt.GlobalColor.white)
-        QTimer.singleShot(3000, self.start_fade_out)  # Start fade out after 3 seconds
-
-    def start_fade_out(self):
-        self.fade_animation = QPropertyAnimation(self, b"windowOpacity")
-        self.fade_animation.setDuration(2000)
-        self.fade_animation.setStartValue(1)
-        self.fade_animation.setEndValue(0)
-        self.fade_animation.finished.connect(self.show_login_page)
-        self.fade_animation.start()
-
-    def show_login_page(self):
-        self.close()
-        self.login_page = LoginPage()
-        self.login_page.show()
 
 class LoginPage(QWidget):
     def __init__(self):
@@ -227,8 +202,7 @@ class LoginPage(QWidget):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     
-    # Show splash screen instantly
-    splash = SplashScreen()
-    splash.show()
-
+    login_page = LoginPage()
+    login_page.show()
+    
     sys.exit(app.exec())
