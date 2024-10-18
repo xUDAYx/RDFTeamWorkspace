@@ -91,16 +91,24 @@ class LoginPage(QWidget):
         welcome_label.setStyleSheet("color: black; font-size: 25px;")
 
         email_label = QLabel("Email:")
+        email_label.setStyleSheet("font-weight:bold;")
         password_label = QLabel("Password:")
-
+        password_label.setStyleSheet("font-weight:bold;")
         self.email_input = QLineEdit()
         self.password_input = QLineEdit()
         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
 
         self.remember_me_checkbox = QCheckBox("Remember Me")
         self.login_button = QPushButton("Login")
-        self.login_button.setFixedWidth(70)
-        self.login_button.setStyleSheet("background-color: blue;")
+        self.login_button.setFixedWidth(100)  # Increased width
+        self.login_button.setFixedHeight(40)  # Increased height
+        self.login_button.setStyleSheet("""
+            background-color: #007BFF;  /* Change to a nicer blue */
+            color: white;                /* White text color */
+            border: none;                /* No border */
+            border-radius: 5px;         /* Rounded corners */
+            font-size: 16px;             /* Larger font size */
+        """)
         self.login_button.clicked.connect(self.login)
 
         form_layout = QFormLayout()
@@ -173,7 +181,12 @@ class LoginPage(QWidget):
         """Open the CodeEditor (main application window) and close the login page."""
         self.main_window = CodeEditor(self.email_input.text())  # Pass the user email to CodeEditor
         self.main_window.show()
-        self.close()  # Close the login page
+        self.close()
+        
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
+            self.login()  # Call the login method when Enter is pressed
+        super().keyPressEvent(event)  # Close the login page
 
     def closeEvent(self, event):
         """Override the close event to stop the thread when the app closes."""

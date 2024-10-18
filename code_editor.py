@@ -17,7 +17,7 @@ from pc_view import PCView
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 from PyQt6.QtGui import QSyntaxHighlighter,QIcon,QImage
 from PyQt6.Qsci import QsciDocument
-from PyQt6.QtWidgets import QWizard,QWizardPage,QScrollArea, QDialog,QPlainTextEdit,QProgressDialog, QProgressBar,QInputDialog,QLabel, QMainWindow,QLineEdit,QMenu, QVBoxLayout, QWidget, QSplitter, QDialogButtonBox, QTreeView, QToolBar, QFileDialog, QToolButton, QTabWidget, QApplication, QMessageBox, QPushButton, QTextEdit, QScrollBar, QHBoxLayout, QSizePolicy
+from PyQt6.QtWidgets import QWizard,QWizardPage,QScrollArea,QDockWidget, QDialog,QPlainTextEdit,QProgressDialog, QProgressBar,QInputDialog,QLabel, QMainWindow,QLineEdit,QMenu, QVBoxLayout, QWidget, QSplitter, QDialogButtonBox, QTreeView, QToolBar, QFileDialog, QToolButton, QTabWidget, QApplication, QMessageBox, QPushButton, QTextEdit, QScrollBar, QHBoxLayout, QSizePolicy
 from PyQt6.QtGui import  QTextCharFormat,QAction, QPixmap, QFileSystemModel, QIcon, QFont, QPainter, QColor, QTextFormat, QTextCursor, QKeySequence, QShortcut
 from PyQt6.QtCore import Qt,QEvent, QModelIndex, QSettings,QTimer, QDir,QThread, pyqtSlot, QSize, QRect, QProcess, QPoint, pyqtSignal,QCoreApplication
 from PyQt6.Qsci import QsciScintilla, QsciLexerPython, QsciLexerHTML, QsciLexerJavaScript, QsciLexerCSS
@@ -26,8 +26,8 @@ from terminal_widget import TerminalWidget
 from mobile_view import MobileView
 from project_view import ProjectView
 from new_project import NewProjectWizard
-from theme import DarkTheme
-from PyQt6.Qsci import QsciAbstractAPIs, QsciScintilla, QsciDocument,QsciLexerJSON,QsciLexerCPP
+from theme import DarkTheme,LightTheme
+from PyQt6.Qsci import QsciAbstractAPIs, QsciScintilla,QsciLexerJSON,QsciLexerCPP
 from autocompleter import AutoCompleter
 from Rule_Engine import RuleEngine
 from code_formatter import CodeFormatter
@@ -152,15 +152,18 @@ class CustomCodeEditor(QsciScintilla):
         self.setFont(font)
 
         # Enable line numbers in the first margin (Margin 0)
-        self.setMarginType(0, QsciScintilla.MarginType.NumberMargin)  # Margin type for line numbers
-        self.setMarginLineNumbers(0, True)  # Enable line numbers
+        self.setMarginType(0, QsciScintilla.MarginType.NumberMargin)
+        self.setMarginLineNumbers(0, True)
 
         # Adjust the margin width dynamically based on the number of lines in the editor
         self.setMarginWidth(0, "0000")  # Adjust width for up to 9999 lines
 
-        # Set custom colors for the margin where line numbers appear
-        self.setMarginsBackgroundColor(QColor("#F0F0F0"))  # Light gray background
+        # Set the font and style for line numbers (consistent across different lexers)
+        self.setMarginsFont(QFont("Consolas", self.font_size))  # Force font for line numbers
         self.setMarginsForegroundColor(QColor("#000000"))  # Black text for line numbers
+
+        # Remove background color for margin (line numbers)
+        self.setMarginsBackgroundColor(QColor("#FFFFFF"))   # Use the editor's background
 
         # Set indentation guides and auto-indentation
         self.setIndentationGuides(True)
@@ -174,10 +177,8 @@ class CustomCodeEditor(QsciScintilla):
         self.setLexer(lexer)
 
         # Set custom color and style for indentation guides
-        # QsciScintilla uses style index 16 for indentation guides
-        lexer.setColor(QColor("#D3D3D3"), QsciLexerHTML.Default)  # Use 'Default' or another valid style index for whitespace
-        lexer.setFont(QFont("Consolas", self.font_size), QsciLexerHTML.Default)  # Set the font for the default style
-  # Set the font for the guides (affects line thickness)
+        lexer.setColor(QColor("#D3D3D3"), QsciLexerHTML.Default)
+        lexer.setFont(QFont("Consolas", self.font_size), QsciLexerHTML.Default)
 
         # Enable highlighting for the current line
         self.setCaretLineVisible(True)
@@ -189,6 +190,7 @@ class CustomCodeEditor(QsciScintilla):
         self.setAutoCompletionCaseSensitivity(False)
         self.setAutoCompletionReplaceWord(True)
         self.setAutoCompletionUseSingle(QsciScintilla.AutoCompletionUseSingle.AcusNever)
+
 
 
 
@@ -301,11 +303,21 @@ class CodeEditor(QMainWindow):
             self.hScrollBar = QScrollBar(Qt.Orientation.Horizontal)
 
             self.hScrollBar.valueChanged.connect(self.syncScrollBar)
+            self.hScrollBar.setStyleSheet("""
+                QScrollBar:horizontal {
+                    background: #333;
+                    height: 4px;  /* Thinner height */
+                }
+                QScrollBar::handle:horizontal {
+                    background: #555;
+                    min-width: 5px;  /* Make handle slightly wider */
+                }
+                """)
             self.codeEditor.horizontalScrollBar().valueChanged.connect(self.syncEditorScrollBar)
 
             # Create the toolbar
             self.toolbar = QToolBar("Main Toolbar")
-
+            self.addToolBar(self.toolbar)
             self.ref_view_action = QAction("Reference View", self)
             
             self.ref_view_action.triggered.connect(self.toggle_ref_view)
@@ -354,7 +366,7 @@ class CodeEditor(QMainWindow):
             view_menu = QMenu("view",self)
 
             self.project_view_action = QAction(QIcon("project_view.png"), "Reset View", self)
-            self.project_view_action.triggered.connect(self.toggle_sidebar)
+            # self.project_view_action.triggered.connect(self.toggle_sidebar)
             self.dark_mode_action = QAction("Dark Mode", self)
             self.dark_mode_action.triggered.connect(self.toggle_dark_theme)
             self.pc_view_action = QAction("PC View", self)
@@ -478,9 +490,21 @@ class CodeEditor(QMainWindow):
 
             self.toolbar.addWidget(AI_Power_Button)
 
-            # Add the toolbar to the main layout
+            spacer = QWidget()
+            spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
 
-            self.main_layout.addWidget(self.toolbar)
+            self.profile_button = QToolButton()
+            self.profile_button.setIcon(QIcon("E:/RDFTeamWorkspace/images/profile_icon.png"))  # Set the path to your icon
+            self.profile_button.setToolTip("Profile")  # Tooltip text for the button
+            self.profile_button.setStyleSheet("border: none;background-color:None;")  # Optional: Remove button border
+
+            self.toolbar.addWidget(spacer)  # This will push the profile button to the right
+            self.toolbar.addWidget(self.profile_button) 
+
+           
+
+            # Spacer to push the button to the right corner
+              # This adds stretchable space, pushing the button to the right
 
             self.tab_widget = QTabWidget()
             self.tab_widget.setTabsClosable(True)
@@ -500,6 +524,9 @@ class CodeEditor(QMainWindow):
             self.pc_view.hide()  # Hide the pc_view initially
             self.main_layout.addWidget(self.main_splitter)
 
+
+            # self.main_layout.addWidget(self.toolbar)
+
             self.live_preview_timer = QTimer()
             self.live_preview_timer.setInterval(1000)
             self.live_preview_timer.timeout.connect(self.update_live_preview)
@@ -508,7 +535,7 @@ class CodeEditor(QMainWindow):
             self.save_shortcut.activated.connect(self.save_file)
 
             self.current_file_path = None
-            self.project_view.show()
+            # self.project_view.show()
 
             self.rules_directory = os.path.join(self.base_dir, 'rules')
             self.rules = {
@@ -522,10 +549,148 @@ class CodeEditor(QMainWindow):
 
             self.dark_theme_enabled = False
 
+            self.apply_toolbar_style()
+
             self.installEventFilter(self)
         except Exception as e:
             print(f"Error initializing CodeEditor: {e}")
             logging.error(f"Error initializing CodeEditor: {e}")
+
+    def toggle_sidebar(self):
+        try:
+            if self.project_view.isHidden():
+                self.project_view.show()
+            else:
+                self.project_view.hide()
+        except Exception as e:
+            print(f"Error toggling sidebar: {e}")
+            logging.error(f"Error toggling sidebar: {e}")
+
+    def apply_toolbar_style(self):
+        if not self.dark_theme_enabled:  # If dark theme is NOT enabled, apply light theme
+            self.toolbar.setStyleSheet("""
+                QToolBar {
+                    background-color: #FFFFFF;  /* Light background */
+                    border: 1px solid #dcdcdc;  /* Subtle border */
+                    padding: 5px;  /* Padding around the toolbar */
+                }
+                QToolButton {
+                    background-color: #ffffff;  /* White button background */
+                    border: 1px solid #cccccc;  /* Light gray border */
+                    border-radius: 4px;  /* Rounded corners */
+                    margin: 2px;
+                    padding: 4px 8px;  /* Padding inside the buttons */
+                    font-size: 12px;  /* Button text size */
+                    color: #333333;  /* Dark gray text color */
+                }
+                QToolButton:hover {
+                    background-color: #e6e6e6;  /* Slightly darker background on hover */
+                    border-color: #b3b3b3;  /* Darker border on hover */
+                }
+                QToolButton:pressed {
+                    background-color: #cccccc;  /* Even darker background when pressed */
+                    border-color: #999999;  /* Darker border when pressed */
+                }
+                QToolButton::menu-indicator {
+                    image: none;  /* Hide the menu indicator (down arrow) */
+
+                QMenu {
+                background-color: rgb(30, 30, 30);  /* Dark background for the menu */
+                color: white;  /* White text color */
+                }
+                QMenu::item {
+                    padding: 5px 15px;  /* Padding for menu items */
+                }
+                QMenu::item:selected {
+                    background-color: rgb(45, 45, 45);  /* Highlight color for selected items */
+                
+                }
+            """)
+        else:  # If dark theme is enabled, apply dark theme
+            self.toolbar.setStyleSheet("""
+                QToolBar {
+                    background-color: rgb(45, 45, 48);  /* Dark background */
+                    border: none;  /* Remove border */
+                    padding: 5px;  /* Padding around the toolbar */
+                }
+                QToolButton {
+                    background-color: rgb(45, 45, 48);  /* Dark button background */
+                    border: 1px solid rgb(70, 70, 70);  /* Darker gray border */
+                    border-radius: 4px;  /* Rounded corners */
+                    margin: 2px;
+                    padding: 4px 8px;  /* Padding inside the buttons */
+                    font-size: 12px;  /* Button text size */
+                    color: white;  /* White text color */
+                }
+                QToolButton:hover {
+                    background-color: rgb(70, 70, 70);  /* Highlight on hover */
+                    border-color: rgb(100, 100, 100);  /* Darker border on hover */
+                }
+                QToolButton:pressed {
+                    background-color: rgb(60, 60, 60);  /* Darker background when pressed */
+                    border-color: rgb(120, 120, 120);  /* Darker border when pressed */
+                }
+                QToolButton::menu-indicator {
+                    image: none;  /* Hide the menu indicator (down arrow) */
+                QMenu {
+                    background-color: white;  /* Light background for the menu */
+                    color: black;  /* Black text color */
+                }
+
+                QMenu::item {
+                    padding: 5px 15px;  /* Padding for menu items */
+                }
+                QMenu::item:selected {
+                    background-color: rgb(230, 230, 230);  /* Highlight color for selected items */
+                }
+                QToolTip{
+                    color:#FFFFFF;
+                }
+            """)
+
+    def apply_menu_style(self):
+        if self.dark_theme_enabled:
+            self.setStyleSheet("""
+                QMenu {
+                    background-color: rgb(30, 30, 30);  /* Dark background for the menu */
+                    color: white;  /* White text color */
+                    border: 1px solid rgb(70, 70, 70);  /* Dark border */
+                    border-radius: 10px;  /* Curved corners */
+                }
+                QMenu::item {
+                    padding: 5px 15px;  /* Padding for menu items */
+                }
+                QMenu::item:selected {
+                    background-color: rgb(45, 45, 45);  /* Highlight color for selected items */
+                }
+            """)
+        else:
+            self.setStyleSheet("""
+                QMenu {
+                    background-color: white;  /* Light background for the menu */
+                    color: black;  /* Black text color */
+                    border: 1px solid #dcdcdc;  /* Light border */
+                    border-radius: 10px;  /* Curved corners */
+                }
+                QMenu::item {
+                    padding: 5px 15px;  /* Padding for menu items */
+                }
+                QMenu::item:selected {
+                    background-color: rgb(230, 230, 230);  /* Highlight color for selected items */
+                }
+            """)
+
+    def apply_code_editor_style(self):
+        """Apply styles to the code editor based on the current theme."""
+        if self.dark_theme_enabled:
+            # Set line number background to black and text to white in dark theme
+            self.codeEditor.setMarginBackgroundColor(QColor('#000000'))  # Black background
+            self.codeEditor.setMarginForegroundColor(QColor('#FFFFFF'))  # White text
+        else:
+            # Set line number background to white and text to black in light theme
+            self.codeEditor.setMarginBackgroundColor(QColor('#FFFFFF'))  # White background
+            self.codeEditor.setMarginForegroundColor(QColor('#000000'))  #
+
 
     def start_timer(self):
         self.start_time = datetime.now()
@@ -832,16 +997,6 @@ class CodeEditor(QMainWindow):
             self.main_splitter.setSizes(self.stored_sizes)
             
             self.pc_view_active = False    
-            
-    def toggle_sidebar(self):
-        try:
-            if self.project_view.isHidden():
-                self.project_view.show()
-            else:
-                self.project_view.hide()
-        except Exception as e:
-            print(f"Error toggling sidebar: {e}")
-            logging.error(f"Error toggling sidebar: {e}")
 
     def close_tab(self, index):
         try:
@@ -1433,16 +1588,29 @@ class CodeEditor(QMainWindow):
             QMessageBox.critical(self, "Syntax Highlighting Error", f"An error occurred while setting syntax highlighting: {str(e)}")
             logging.error(f"Error setting syntax highlighting: {e}")
 
+
+
     def toggle_dark_theme(self):
         try:
+            
             if self.dark_theme_enabled:
-                QApplication.instance().setPalette(QApplication.style().standardPalette())
+                LightTheme.apply() 
+                self.dark_mode_action.setText("Dark Mode") 
+                # Apply light theme
             else:
                 DarkTheme.apply()
+                self.dark_mode_action.setText("Light Mode")   # Apply dark theme
+            
+            
             self.dark_theme_enabled = not self.dark_theme_enabled
+            self.apply_toolbar_style()
+            self.apply_menu_style()
+            self.apply_code_editor_style() 
+            
         except Exception as e:
             print(f"Error toggling dark theme: {e}")
             logging.error(f"Error toggling dark theme: {e}")
+
     
     def syncScrollBar(self, value):
         try:
