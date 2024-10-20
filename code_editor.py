@@ -18,8 +18,8 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 from PyQt6.QtGui import QSyntaxHighlighter,QIcon,QImage
 from PyQt6.Qsci import QsciDocument
 from PyQt6.QtWidgets import QWizard,QWizardPage,QScrollArea,QDockWidget, QDialog,QPlainTextEdit,QProgressDialog, QProgressBar,QInputDialog,QLabel, QMainWindow,QLineEdit,QMenu, QVBoxLayout, QWidget, QSplitter, QDialogButtonBox, QTreeView, QToolBar, QFileDialog, QToolButton, QTabWidget, QApplication, QMessageBox, QPushButton, QTextEdit, QScrollBar, QHBoxLayout, QSizePolicy
-from PyQt6.QtGui import  QTextCharFormat,QAction, QPixmap, QFileSystemModel, QIcon, QFont, QPainter, QColor, QTextFormat, QTextCursor, QKeySequence, QShortcut
-from PyQt6.QtCore import Qt,QEvent, QModelIndex, QSettings,QTimer, QDir,QThread, pyqtSlot, QSize, QRect, QProcess, QPoint, pyqtSignal,QCoreApplication
+from PyQt6.QtGui import  QKeyEvent,QTextCharFormat,QAction, QPixmap, QFileSystemModel, QIcon, QFont, QPainter, QColor, QTextFormat, QTextCursor, QKeySequence, QShortcut
+from PyQt6.QtCore import Qt,QEvent, QModelIndex, QSettings,QTimer, QDir,QThread, pyqtSlot, QSize, QPropertyAnimation, QRect, QEasingCurve, QProcess, QPoint, pyqtSignal,QCoreApplication
 from PyQt6.Qsci import QsciScintilla, QsciLexerPython, QsciLexerHTML, QsciLexerJavaScript, QsciLexerCSS
 
 from terminal_widget import TerminalWidget
@@ -366,6 +366,7 @@ class CodeEditor(QMainWindow):
             view_menu = QMenu("view",self)
 
             self.project_view_action = QAction(QIcon("project_view.png"), "Reset View", self)
+            self.project_view_action.triggered.connect(self.toggle_project_view)
             # self.project_view_action.triggered.connect(self.toggle_sidebar)
             self.dark_mode_action = QAction("Dark Mode", self)
             self.dark_mode_action.triggered.connect(self.toggle_dark_theme)
@@ -512,7 +513,7 @@ class CodeEditor(QMainWindow):
             self.tab_widget.currentChanged.connect(self.update_live_preview)
 
             self.splitter = QSplitter(Qt.Orientation.Horizontal)
-            self.splitter.addWidget(self.project_view)
+            # self.splitter.addWidget(self.project_view)
             self.splitter.addWidget(self.tab_widget)
             self.splitter.setSizes([500, 900])  # Set initial sizes for the project view and tab widget
 
@@ -523,6 +524,18 @@ class CodeEditor(QMainWindow):
             self.main_splitter.setSizes([1000, 300, 300])  # Set initial sizes for the main splitter
             self.pc_view.hide()  # Hide the pc_view initially
             self.main_layout.addWidget(self.main_splitter)
+
+            self.project_view.setParent(None)  # Remove project view from layout initially
+
+              # Add button to toolbar
+
+            # Set animation for project view sliding in/out
+            self.project_view_animation = QPropertyAnimation(self.project_view, b"geometry")
+            self.project_view_animation.setDuration(300)  # 300 ms animation
+            self.project_view_animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
+
+            # Variable to track whether project view is visible
+            self.project_view_visible = False
 
 
             # self.main_layout.addWidget(self.toolbar)
@@ -556,15 +569,57 @@ class CodeEditor(QMainWindow):
             print(f"Error initializing CodeEditor: {e}")
             logging.error(f"Error initializing CodeEditor: {e}")
 
-    def toggle_sidebar(self):
-        try:
-            if self.project_view.isHidden():
-                self.project_view.show()
-            else:
-                self.project_view.hide()
-        except Exception as e:
-            print(f"Error toggling sidebar: {e}")
-            logging.error(f"Error toggling sidebar: {e}")
+    def toggle_project_view(self):
+        toolbar_height = self.toolbar.height()  # Get the toolbar height
+        available_height = self.height() - toolbar_height  # Subtract toolbar height from window height
+
+        if not self.project_view_visible:
+            # Show the project view with animation (slide in)
+            self.project_view.setParent(self)
+            self.project_view.setGeometry(0, toolbar_height, 250, available_height)  # Adjust for toolbar height
+            self.project_view.show()
+            self.project_view.raise_()
+
+            # Slide in animation
+            self.project_view_animation.setStartValue(QRect(-250, toolbar_height, 250, available_height))  # Off-screen start
+            self.project_view_animation.setEndValue(QRect(0, toolbar_height, 250, available_height))  # On-screen end
+
+            # Add a small delay before enabling the key events
+            QTimer.singleShot(300, lambda: self.installEventFilter(self))  # 300 ms delay
+
+            # Set visibility state
+            self.project_view_visible = True  # Update visibility state to True
+            print("Project view opened.")  # Debugging statement
+
+        else:
+            # Slide out and hide project view
+            self.project_view_animation.setStartValue(QRect(0, toolbar_height, 250, available_height))  # On-screen start
+            self.project_view_animation.setEndValue(QRect(-250, toolbar_height, 250, available_height))  # Off-screen end
+
+
+            # Remove event filter when hidden and update state
+            self.removeEventFilter(self)  # Remove event filter when hidden
+            self.project_view_visible = False  # Update visibility state to False
+            print("Project view hidden.")  # Debugging statement
+
+        self.project_view_animation.start()  # Start the animation
+
+    # Override the keyPressEvent to handle Tab and Escape keys
+    def keyPressEvent(self, event):
+        if event.type() == QKeyEvent.Type.KeyPress:
+            if event.key() == Qt.Key.Key_Tab:
+                self.toggle_project_view()  # Toggle the project view when Tab is pressed
+                return  # Stop further event propagation
+            elif event.key() == Qt.Key.Key_Escape:
+                if self.project_view_visible:  # Only hide if the project view is open
+                    self.toggle_project_view()  # Hide the project view when Escape is pressed
+                    return  # Stop further event propagation
+        super().keyPressEvent(event)  # Call the base class method for other keys
+
+
+    # Override the keyPressEvent to handle Tab key
+   
+
 
     def apply_toolbar_style(self):
         if not self.dark_theme_enabled:  # If dark theme is NOT enabled, apply light theme

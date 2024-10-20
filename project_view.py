@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import QApplication,QWidget, QWizard,QWizardPage,QVBoxLayou
 from PyQt6.QtCore import Qt, QDir, pyqtSignal, QUrl
 from PyQt6.QtGui import QMouseEvent,QAction
 
-from PyQt6.QtGui import QColor, QFont,QDesktopServices
+from PyQt6.QtGui import QColor, QFont,QDesktopServices,QPainter
 from PyQt6.Qsci import QsciScintilla, QsciLexerPython, QsciLexerHTML, QsciLexerJavaScript, QsciLexerCSS
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 import os
@@ -383,6 +383,7 @@ class ProjectView(QWidget):
         super().__init__(parent)
         self.showMaximized()
         self.setWindowFlags(Qt.WindowType.Window)
+        self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent) 
         self.setWindowTitle("Project View")
 
         self.copied_file_path = None  # Track the copied file path
@@ -531,6 +532,12 @@ class ProjectView(QWidget):
         elif item:
             # Right-click on table item
             self.context_menu.exec(table.mapToGlobal(pos))
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        # Set the background color (e.g., light gray)
+        background_color = QColor(240, 240, 240)  # Change this to your desired color
+        painter.fillRect(self.rect(), background_color)
 
     def copy_file(self):
         table = self.context_menu_table  # Use the stored table reference
